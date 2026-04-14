@@ -18,6 +18,7 @@ import { InvoicesModule } from './modules/invoices/invoices.module';
 import { MaintenanceModule } from './modules/maintenance/maintenance.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { PlatformModule } from './modules/platform/platform.module';
 import { ReservationsModule } from './modules/reservations/reservations.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
 import { UsersModule } from './modules/users/users.module';
@@ -71,6 +72,7 @@ import { PrismaModule } from './prisma/prisma.module';
     VehicleCreditsModule,
     MaintenanceModule,
     AnalyticsModule,
+    PlatformModule,
   ],
   providers: [
     TenantMiddleware,

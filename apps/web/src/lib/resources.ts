@@ -4,8 +4,12 @@ import type {
   AuthProfileDto,
   ClientPerformanceDto,
   DashboardKpisDto,
+  PlatformMetricsDto,
   ReportGranularity,
   RevenuePointDto,
+  TenantDto,
+  TenantSummaryDto,
+  UpdateTenantPlatformInput,
   VehiclePerformanceDto,
   AuthTokensDto,
   ClientDto,
@@ -266,5 +270,33 @@ export const analyticsApi = {
   /// should fetch the blob with the auth-enabled client and build an object URL.
   exportUrl: (kind: 'contracts' | 'invoices' | 'payments') =>
     `${API_URL}/analytics/exports/${kind}.csv`,
+};
+
+// -------- Platform (SUPER_ADMIN) --------
+
+export interface ListPlatformTenantsQuery extends PaginationQuery {
+  status?: string;
+  plan?: string;
+  q?: string;
+}
+
+export const platformApi = {
+  metrics: () => api.get<PlatformMetricsDto>('/platform/metrics'),
+  listTenants: (q?: ListPlatformTenantsQuery) =>
+    api.get<PaginatedResult<TenantDto>>(`/platform/tenants${qs(q)}`),
+  getTenant: (id: string) =>
+    api.get<TenantSummaryDto>(`/platform/tenants/${id}`),
+  updateTenant: (id: string, body: UpdateTenantPlatformInput) =>
+    api.patch<TenantDto>(`/platform/tenants/${id}`, body),
+  suspend: (id: string, reason?: string) =>
+    api.post<TenantDto>(`/platform/tenants/${id}/suspend`, { reason }),
+  activate: (id: string) =>
+    api.post<TenantDto>(`/platform/tenants/${id}/activate`),
+  cancel: (id: string, reason?: string) =>
+    api.post<TenantDto>(`/platform/tenants/${id}/cancel`, { reason }),
+  extendTrial: (id: string, days: number) =>
+    api.post<TenantDto>(`/platform/tenants/${id}/extend-trial`, { days }),
+  sweepExpiries: () =>
+    api.post<{ expired: number }>('/platform/sweep-expiries'),
 };
 

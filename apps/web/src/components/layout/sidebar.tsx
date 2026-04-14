@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import {
   LayoutDashboard,
@@ -11,10 +13,19 @@ import {
   Landmark,
   BarChart3,
   BellRing,
+  ShieldCheck,
   Settings,
 } from 'lucide-react';
 
-const NAV_ITEMS = [
+import { useAuth } from '@/lib/auth-context';
+
+interface NavItem {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+}
+
+const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
   { href: '/vehicles', label: 'Véhicules', icon: Car },
   { href: '/clients', label: 'Clients', icon: Users },
@@ -29,7 +40,15 @@ const NAV_ITEMS = [
   { href: '/settings', label: 'Paramètres', icon: Settings },
 ];
 
+const PLATFORM_ITEMS: NavItem[] = [
+  { href: '/platform', label: 'Vue plateforme', icon: ShieldCheck },
+  { href: '/platform/tenants', label: 'Tenants', icon: Users },
+];
+
 export function Sidebar() {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+
   return (
     <aside className="hidden lg:flex lg:flex-col w-64 shrink-0 border-r border-slate-200 bg-white">
       <div className="h-16 flex items-center px-6 border-b border-slate-200">
@@ -54,12 +73,35 @@ export function Sidebar() {
             </li>
           ))}
         </ul>
+
+        {isSuperAdmin && (
+          <>
+            <p className="mt-6 mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+              Platform
+            </p>
+            <ul className="space-y-0.5">
+              {PLATFORM_ITEMS.map(({ href, label, icon: Icon }) => (
+                <li key={href}>
+                  <Link
+                    href={href}
+                    className="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition"
+                  >
+                    <Icon className="h-4 w-4 text-slate-400 group-hover:text-accent transition" />
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </nav>
       <div className="p-4 border-t border-slate-200">
         <div className="rounded-lg bg-primary-50 p-3">
-          <p className="text-xs font-semibold text-primary-700">Essai gratuit</p>
+          <p className="text-xs font-semibold text-primary-700">
+            {isSuperAdmin ? 'Super-admin' : 'Essai gratuit'}
+          </p>
           <p className="text-xs text-primary-600 mt-1">
-            14 jours restants
+            {isSuperAdmin ? 'Accès plateforme' : '14 jours restants'}
           </p>
         </div>
       </div>
