@@ -33,8 +33,21 @@ export interface AuthenticatedUser {
 
 export type UserRoleName =
   | 'SUPER_ADMIN'
-  | 'OWNER'
+  | 'ADMIN'
   | 'MANAGER'
-  | 'AGENT'
-  | 'ACCOUNTANT'
-  | 'VIEWER';
+  | 'EMPLOYEE'
+  | 'ACCOUNTANT';
+
+export interface AuthProfileDto {
+  id: string;
+  tenantId: string | null;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: UserRoleName;
+  status: 'ACTIVE' | 'INVITED' | 'SUSPENDED' | 'DISABLED';
+  mfaEnabled: boolean;
+  emailVerifiedAt: string | null;
+  lastLoginAt: string | null;
+  createdAt: string;
+}

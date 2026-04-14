@@ -8,12 +8,11 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { TenantGuard } from '../../common/guards/tenant.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { ContractsService } from './contracts.service';
 import { CompleteContractDto } from './dto/complete-contract.dto';
@@ -21,7 +20,6 @@ import { CreateContractDto } from './dto/create-contract.dto';
 import { ListContractsDto } from './dto/list-contracts.dto';
 
 @Controller('contracts')
-@UseGuards(TenantGuard)
 export class ContractsController {
   constructor(private readonly contracts: ContractsService) {}
 
@@ -35,6 +33,7 @@ export class ContractsController {
     return this.contracts.get(tenantId, id);
   }
 
+  @Roles('ADMIN', 'MANAGER', 'EMPLOYEE')
   @Post()
   @HttpCode(HttpStatus.CREATED)
   create(
@@ -45,6 +44,7 @@ export class ContractsController {
     return this.contracts.create(tenantId, user.sub, dto);
   }
 
+  @Roles('ADMIN', 'MANAGER', 'EMPLOYEE')
   @Post(':id/complete')
   complete(
     @CurrentTenant() tenantId: string,
@@ -54,6 +54,7 @@ export class ContractsController {
     return this.contracts.complete(tenantId, id, dto);
   }
 
+  @Roles('ADMIN', 'MANAGER')
   @Post(':id/cancel')
   cancel(@CurrentTenant() tenantId: string, @Param('id', ParseUUIDPipe) id: string) {
     return this.contracts.cancel(tenantId, id);

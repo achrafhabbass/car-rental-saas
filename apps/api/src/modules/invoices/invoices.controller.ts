@@ -8,17 +8,15 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
-import { TenantGuard } from '../../common/guards/tenant.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { ListInvoicesDto } from './dto/list-invoices.dto';
 import { InvoicesService } from './invoices.service';
 
 @Controller('invoices')
-@UseGuards(TenantGuard)
 export class InvoicesController {
   constructor(private readonly invoices: InvoicesService) {}
 
@@ -32,6 +30,7 @@ export class InvoicesController {
     return this.invoices.get(tenantId, id);
   }
 
+  @Roles('ADMIN', 'MANAGER', 'ACCOUNTANT')
   @Post()
   @HttpCode(HttpStatus.CREATED)
   create(@CurrentTenant() tenantId: string, @Body() dto: CreateInvoiceDto) {

@@ -8,18 +8,17 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
-import { TenantGuard } from '../../common/guards/tenant.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { CreateCreditDto } from './dto/create-credit.dto';
 import { ListCreditsDto } from './dto/list-credits.dto';
 import { RecordCreditPaymentDto } from './dto/record-payment.dto';
 import { VehicleCreditsService } from './vehicle-credits.service';
 
 @Controller('vehicle-credits')
-@UseGuards(TenantGuard)
+@Roles('ADMIN', 'ACCOUNTANT')
 export class VehicleCreditsController {
   constructor(private readonly credits: VehicleCreditsService) {}
 

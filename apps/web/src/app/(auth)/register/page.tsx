@@ -7,8 +7,7 @@ import { useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/input';
 import { ApiError } from '@/lib/api';
-import { authApi } from '@/lib/resources';
-import { session } from '@/lib/session';
+import { useAuth } from '@/lib/auth-context';
 
 function slugify(value: string): string {
   return value
@@ -21,6 +20,7 @@ function slugify(value: string): string {
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { register } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,18 +31,13 @@ export default function RegisterPage() {
     const fd = new FormData(e.currentTarget);
     const companyName = String(fd.get('companyName'));
     try {
-      const result = await authApi.register({
+      await register({
         companyName,
         companySlug: slugify(companyName) || 'company',
         firstName: String(fd.get('firstName')),
         lastName: String(fd.get('lastName')),
         email: String(fd.get('email')),
         password: String(fd.get('password')),
-      });
-      session.set({
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
-        tenantId: result.tenantId,
       });
       router.push('/dashboard');
       router.refresh();

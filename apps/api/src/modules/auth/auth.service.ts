@@ -65,7 +65,7 @@ export class AuthService {
             passwordHash,
             firstName: dto.firstName,
             lastName: dto.lastName,
-            role: UserRole.OWNER,
+            role: UserRole.ADMIN,
             status: UserStatus.ACTIVE,
           },
         });

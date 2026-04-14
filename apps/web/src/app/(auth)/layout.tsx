@@ -1,8 +1,11 @@
+import { RedirectIfAuthenticated } from '@/components/layout/protected-route';
+
 export default function AuthLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <div className="min-h-screen grid md:grid-cols-2 bg-slate-50">
+    <RedirectIfAuthenticated>
+      <div className="min-h-screen grid md:grid-cols-2 bg-slate-50">
       <section className="hidden md:flex flex-col justify-between p-12 bg-primary-500 text-white">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">AutoSphere</h1>
@@ -22,5 +25,6 @@ export default function AuthLayout({
         <div className="w-full max-w-md">{children}</div>
       </section>
     </div>
+    </RedirectIfAuthenticated>
   );
 }

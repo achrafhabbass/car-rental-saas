@@ -31,13 +31,18 @@ enum TenantPlan {
   ENTERPRISE
 }
 
+/// Role model for authorization.
+/// SUPER_ADMIN: platform-level (tenantId = null), cross-tenant access
+/// ADMIN: tenant administrator — full control of a single tenant
+/// MANAGER: operations manager — can manage fleet, clients, contracts
+/// EMPLOYEE: front-desk / counter agent — day-to-day operations
+/// ACCOUNTANT: finance — payments, invoices, credits, reports
 enum UserRole {
   SUPER_ADMIN
-  OWNER
+  ADMIN
   MANAGER
-  AGENT
+  EMPLOYEE
   ACCOUNTANT
-  VIEWER
 }
 
 enum UserStatus {
@@ -204,7 +209,7 @@ model User {
   passwordHash    String     @db.VarChar(255)
   firstName       String     @db.VarChar(120)
   lastName        String     @db.VarChar(120)
-  role            UserRole   @default(VIEWER)
+  role            UserRole   @default(EMPLOYEE)
   status          UserStatus @default(ACTIVE)
   emailVerifiedAt DateTime?
   mfaEnabled      Boolean    @default(false)

@@ -1,4 +1,5 @@
 import type {
+  AuthProfileDto,
   AuthTokensDto,
   ClientDto,
   CreateClientInput,
@@ -50,6 +51,7 @@ export const authApi = {
       { skipAuth: true },
     ),
   logout: () => api.post<void>('/auth/logout'),
+  me: () => api.get<AuthProfileDto>('/auth/me'),
 };
 
 // -------- Vehicles --------

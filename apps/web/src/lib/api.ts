@@ -1,4 +1,4 @@
-import type { ApiEnvelope, ApiErrorEnvelope } from '@autosphere/shared';
+import type { ApiEnvelope, ApiErrorEnvelope, AuthTokensDto } from '@autosphere/shared';
 
 import { session } from './session';
 
@@ -19,10 +19,54 @@ export interface ApiOptions extends Omit<RequestInit, 'body'> {
   token?: string;
   tenantId?: string;
   skipAuth?: boolean;
+  /// Internal: set by the retry path to prevent refresh loops on repeated 401s.
+  _retry?: boolean;
+}
+
+/**
+ * Single-flight refresh: concurrent 401s from multiple in-flight requests
+ * share a single /auth/refresh call, so the refresh token only rotates once.
+ */
+let refreshInFlight: Promise<string | null> | null = null;
+let onUnauthorizedHandler: (() => void) | null = null;
+
+export function setOnUnauthorized(fn: (() => void) | null): void {
+  onUnauthorizedHandler = fn;
+}
+
+async function performRefresh(): Promise<string | null> {
+  const refreshToken = session.getRefreshToken();
+  if (!refreshToken) return null;
+
+  const res = await fetch(`${API_URL}/auth/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ refreshToken }),
+  });
+
+  if (!res.ok) {
+    session.clear();
+    return null;
+  }
+
+  const payload = (await res.json()) as ApiEnvelope<AuthTokensDto>;
+  session.setTokens({
+    accessToken: payload.data.accessToken,
+    refreshToken: payload.data.refreshToken,
+  });
+  return payload.data.accessToken;
+}
+
+async function refreshAccessToken(): Promise<string | null> {
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = performRefresh().finally(() => {
+    refreshInFlight = null;
+  });
+  return refreshInFlight;
 }
 
 export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promise<T> {
-  const { body, token, tenantId, skipAuth, headers, ...rest } = options;
+  const { body, token, tenantId, skipAuth, headers, _retry, ...rest } = options;
   const url = path.startsWith('http') ? path : `${API_URL}${path}`;
 
   const finalHeaders: Record<string, string> = {
@@ -47,6 +91,16 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
   const payload = text ? (JSON.parse(text) as unknown) : null;
 
   if (!res.ok) {
+    // Attempt one transparent refresh on 401 for authenticated routes.
+    if (res.status === 401 && !skipAuth && !_retry) {
+      const newToken = await refreshAccessToken();
+      if (newToken) {
+        return apiFetch<T>(path, { ...options, _retry: true });
+      }
+      // Refresh failed → clear session and notify the UI layer
+      session.clear();
+      if (onUnauthorizedHandler) onUnauthorizedHandler();
+    }
     throw new ApiError(res.status, payload as ApiErrorEnvelope);
   }
 

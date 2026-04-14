@@ -3,6 +3,8 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
+import { RolesGuard } from './common/guards/roles.guard';
+import { TenantGuard } from './common/guards/tenant.guard';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import configuration from './config/configuration';
 import { validationSchema } from './config/validation';
@@ -19,6 +21,16 @@ import { VehicleCreditsModule } from './modules/vehicle-credits/vehicle-credits.
 import { VehiclesModule } from './modules/vehicles/vehicles.module';
 import { PrismaModule } from './prisma/prisma.module';
 
+/**
+ * Global guard chain (executed in declaration order):
+ *   1. ThrottlerGuard — rate limiting
+ *   2. JwtAuthGuard   — authentication (declared inside AuthModule)
+ *   3. TenantGuard    — multi-tenant isolation
+ *   4. RolesGuard     — authorization (RBAC)
+ *
+ * Opt-outs: @Public() (skips auth + tenant), @AllowNoTenant() (skips tenant),
+ * and absence of @Roles() (no role check).
+ */
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -54,10 +66,9 @@ import { PrismaModule } from './prisma/prisma.module';
   ],
   providers: [
     TenantMiddleware,
-    {
-      provide: APP_GUARD,
-      useClass: ThrottlerGuard,
-    },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: TenantGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })
 export class AppModule implements NestModule {

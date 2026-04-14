@@ -7,11 +7,11 @@ import { useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/input';
 import { ApiError } from '@/lib/api';
-import { authApi } from '@/lib/resources';
-import { session } from '@/lib/session';
+import { useAuth } from '@/lib/auth-context';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,15 +21,7 @@ export default function LoginPage() {
     setLoading(true);
     const fd = new FormData(e.currentTarget);
     try {
-      const result = await authApi.login({
-        email: String(fd.get('email')),
-        password: String(fd.get('password')),
-      });
-      session.set({
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
-        tenantId: result.tenantId,
-      });
+      await login(String(fd.get('email')), String(fd.get('password')));
       router.push('/dashboard');
       router.refresh();
     } catch (err) {
