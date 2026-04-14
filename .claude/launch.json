@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "C:\\Users\\achra\\AppData\\Roaming\\npm\\node_modules\\pnpm\\bin\\pnpm.cjs",
+        "--filter",
+        "@autosphere/api",
+        "run",
+        "dev"
+      ],
+      "port": 4001
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "C:\\Users\\achra\\AppData\\Roaming\\npm\\node_modules\\pnpm\\bin\\pnpm.cjs",
+        "--filter",
+        "@autosphere/web",
+        "run",
+        "dev"
+      ],
+      "port": 3000
+    }
+  ]
+}
