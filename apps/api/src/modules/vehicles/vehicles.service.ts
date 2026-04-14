@@ -10,6 +10,7 @@ import {
   buildPagination,
   paginate,
 } from '../../common/dto/pagination.dto';
+import { AlertsService } from '../alerts/alerts.service';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 import { ListVehiclesDto } from './dto/list-vehicles.dto';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto';
@@ -17,7 +18,10 @@ import { VehiclesRepository } from './vehicles.repository';
 
 @Injectable()
 export class VehiclesService {
-  constructor(private readonly repo: VehiclesRepository) {}
+  constructor(
+    private readonly repo: VehiclesRepository,
+    private readonly alerts: AlertsService,
+  ) {}
 
   async list(tenantId: string, dto: ListVehiclesDto): Promise<PaginatedResult<Vehicle>> {
     const { skip, take, orderBy } = buildPagination(dto);
@@ -49,7 +53,7 @@ export class VehiclesService {
         `Vehicle with registration ${dto.registration} already exists`,
       );
     }
-    return this.repo.create({
+    const created = await this.repo.create({
       tenantId,
       registration: dto.registration,
       brand: dto.brand,
@@ -74,6 +78,8 @@ export class VehiclesService {
       vignetteExpiry: dto.vignetteExpiry ? new Date(dto.vignetteExpiry) : undefined,
       notes: dto.notes,
     });
+    await this.alerts.syncVehicleAlerts(tenantId, created.id);
+    return created;
   }
 
   async update(tenantId: string, id: string, dto: UpdateVehicleDto): Promise<Vehicle> {
@@ -106,6 +112,7 @@ export class VehiclesService {
     if (dto.notes !== undefined) data.notes = dto.notes;
 
     await this.repo.update(tenantId, id, data);
+    await this.alerts.syncVehicleAlerts(tenantId, id);
     return this.get(tenantId, id);
   }
 

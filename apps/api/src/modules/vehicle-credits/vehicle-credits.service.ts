@@ -11,6 +11,7 @@ import {
   paginate,
 } from '../../common/dto/pagination.dto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AlertsService } from '../alerts/alerts.service';
 import { buildAmortizationSchedule } from './amortization';
 import { CreateCreditDto } from './dto/create-credit.dto';
 import { ListCreditsDto } from './dto/list-credits.dto';
@@ -22,6 +23,7 @@ export class VehicleCreditsService {
   constructor(
     private readonly repo: VehicleCreditsRepository,
     private readonly prisma: PrismaService,
+    private readonly alerts: AlertsService,
   ) {}
 
   async list(
@@ -74,7 +76,7 @@ export class VehicleCreditsService {
     const endDate = new Date(start);
     endDate.setUTCMonth(endDate.getUTCMonth() + dto.termMonths);
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const credit = await tx.vehicleCredit.create({
         data: {
           tenantId,
@@ -111,6 +113,9 @@ export class VehicleCreditsService {
 
       return credit;
     });
+
+    await this.alerts.syncCreditAlerts(tenantId, result.id);
+    return result;
   }
 
   async recordPayment(
@@ -128,8 +133,8 @@ export class VehicleCreditsService {
       throw new BadRequestException('Installment already paid');
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      const updated = await tx.vehicleCreditPayment.update({
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const u = await tx.vehicleCreditPayment.update({
         where: { id: installment.id },
         data: {
           status: 'PAID',
@@ -153,7 +158,10 @@ export class VehicleCreditsService {
         },
       });
 
-      return updated;
+      return u;
     });
+
+    await this.alerts.syncCreditAlerts(tenantId, credit.id);
+    return updated;
   }
 }

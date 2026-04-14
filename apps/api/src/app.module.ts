@@ -8,11 +8,14 @@ import { TenantGuard } from './common/guards/tenant.guard';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import configuration from './config/configuration';
 import { validationSchema } from './config/validation';
+import { AlertsModule } from './modules/alerts/alerts.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ClientsModule } from './modules/clients/clients.module';
 import { ContractsModule } from './modules/contracts/contracts.module';
 import { HealthModule } from './modules/health/health.module';
 import { InvoicesModule } from './modules/invoices/invoices.module';
+import { MaintenanceModule } from './modules/maintenance/maintenance.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { ReservationsModule } from './modules/reservations/reservations.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
@@ -53,6 +56,8 @@ import { PrismaModule } from './prisma/prisma.module';
     }),
     PrismaModule,
     HealthModule,
+    NotificationsModule,
+    AlertsModule,
     AuthModule,
     UsersModule,
     TenantsModule,
@@ -63,6 +68,7 @@ import { PrismaModule } from './prisma/prisma.module';
     PaymentsModule,
     InvoicesModule,
     VehicleCreditsModule,
+    MaintenanceModule,
   ],
   providers: [
     TenantMiddleware,

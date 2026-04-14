@@ -1,10 +1,14 @@
 import type {
+  AlertDto,
+  AlertSummaryDto,
   AuthProfileDto,
   AuthTokensDto,
   ClientDto,
   CreateClientInput,
   CreateContractInput,
   CreateInvoiceInput,
+  CreateMaintenanceRecordInput,
+  CreateMaintenanceScheduleInput,
   CreatePaymentInput,
   CreateReservationInput,
   CreateVehicleCreditInput,
@@ -12,6 +16,10 @@ import type {
   CreditPaymentDto,
   InvoiceDto,
   LoginRequest,
+  MaintenanceRecordDto,
+  MaintenanceScheduleDto,
+  NotificationDto,
+  NotificationSummaryDto,
   PaginatedResult,
   PaginationQuery,
   PaymentDto,
@@ -176,4 +184,60 @@ export const creditsApi = {
     api.post<VehicleCreditDto>('/vehicle-credits', body),
   recordPayment: (id: string, paymentId: string, body: RecordCreditPaymentInput) =>
     api.post<CreditPaymentDto>(`/vehicle-credits/${id}/payments/${paymentId}`, body),
+};
+
+// -------- Maintenance --------
+
+export interface ListMaintenanceRecordsQuery extends PaginationQuery {
+  vehicleId?: string;
+  type?: string;
+}
+
+export const maintenanceApi = {
+  listRecords: (q?: ListMaintenanceRecordsQuery) =>
+    api.get<PaginatedResult<MaintenanceRecordDto>>(`/maintenance/records${qs(q)}`),
+  getRecord: (id: string) =>
+    api.get<MaintenanceRecordDto>(`/maintenance/records/${id}`),
+  createRecord: (body: CreateMaintenanceRecordInput) =>
+    api.post<MaintenanceRecordDto>('/maintenance/records', body),
+  listSchedules: (q?: { vehicleId?: string; status?: string }) =>
+    api.get<MaintenanceScheduleDto[]>(`/maintenance/schedules${qs(q)}`),
+  createSchedule: (body: CreateMaintenanceScheduleInput) =>
+    api.post<MaintenanceScheduleDto>('/maintenance/schedules', body),
+  cancelSchedule: (id: string) =>
+    api.delete<void>(`/maintenance/schedules/${id}`),
+  vehicleCost: (vehicleId: string) =>
+    api.get<{ totalCost: number; recordCount: number }>(
+      `/maintenance/vehicles/${vehicleId}/cost`,
+    ),
+};
+
+// -------- Alerts --------
+
+export interface ListAlertsQuery {
+  status?: string;
+  severity?: string;
+  vehicleId?: string;
+}
+
+export const alertsApi = {
+  list: (q?: ListAlertsQuery) => api.get<AlertDto[]>(`/alerts${qs(q)}`),
+  summary: () => api.get<AlertSummaryDto>('/alerts/summary'),
+  acknowledge: (id: string) => api.post<AlertDto>(`/alerts/${id}/acknowledge`),
+  resolve: (id: string) => api.post<AlertDto>(`/alerts/${id}/resolve`),
+  resync: () =>
+    api.post<{ vehicles: number; invoices: number; credits: number }>(
+      '/alerts/resync',
+    ),
+};
+
+// -------- Notifications --------
+
+export const notificationsApi = {
+  list: (q?: { status?: string; limit?: number }) =>
+    api.get<NotificationDto[]>(`/notifications${qs(q)}`),
+  summary: () => api.get<NotificationSummaryDto>('/notifications/summary'),
+  markRead: (id: string) => api.post<void>(`/notifications/${id}/read`),
+  markAllRead: () =>
+    api.post<{ count: number }>('/notifications/read-all'),
 };

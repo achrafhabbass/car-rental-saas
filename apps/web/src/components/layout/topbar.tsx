@@ -1,8 +1,9 @@
 'use client';
 
-import { Bell, LogOut, Search } from 'lucide-react';
+import { LogOut, Search } from 'lucide-react';
 import { useState } from 'react';
 
+import { NotificationsBell } from '@/components/layout/notifications-bell';
 import { useAuth } from '@/lib/auth-context';
 
 function initials(first?: string, last?: string): string {
@@ -38,14 +39,7 @@ export function Topbar() {
       </div>
 
       <div className="flex items-center gap-3">
-        <button
-          type="button"
-          className="relative rounded-full p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition"
-          aria-label="Notifications"
-        >
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-danger" />
-        </button>
+        <NotificationsBell />
 
         <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
           <div className="h-8 w-8 rounded-full bg-primary-500 text-white text-xs font-semibold flex items-center justify-center">

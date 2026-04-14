@@ -11,6 +11,7 @@ import {
   paginate,
 } from '../../common/dto/pagination.dto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AlertsService } from '../alerts/alerts.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { ListPaymentsDto } from './dto/list-payments.dto';
 import { PaymentsRepository } from './payments.repository';
@@ -20,6 +21,7 @@ export class PaymentsService {
   constructor(
     private readonly repo: PaymentsRepository,
     private readonly prisma: PrismaService,
+    private readonly alerts: AlertsService,
   ) {}
 
   async list(tenantId: string, dto: ListPaymentsDto): Promise<PaginatedResult<Payment>> {
@@ -73,7 +75,7 @@ export class PaymentsService {
 
     const paymentCode = await this.repo.generateCode(tenantId);
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const payment = await tx.payment.create({
         data: {
           tenantId,
@@ -114,5 +116,10 @@ export class PaymentsService {
 
       return payment;
     });
+
+    if (dto.invoiceId) {
+      await this.alerts.syncInvoiceAlerts(tenantId, dto.invoiceId);
+    }
+    return result;
   }
 }

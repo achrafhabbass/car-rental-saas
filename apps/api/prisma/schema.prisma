@@ -161,6 +161,58 @@ enum CreditPaymentStatus {
   SKIPPED
 }
 
+enum MaintenanceType {
+  OIL_CHANGE
+  REVISION
+  TIRE_CHANGE
+  BRAKES
+  BATTERY
+  INSPECTION
+  REPAIR
+  OTHER
+}
+
+enum MaintenanceStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum AlertType {
+  INSURANCE_EXPIRY
+  TECHNICAL_VISIT_EXPIRY
+  VIGNETTE_EXPIRY
+  MAINTENANCE_DUE
+  MAINTENANCE_OVERDUE
+  CREDIT_PAYMENT_DUE
+  INVOICE_OVERDUE
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum AlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  ARCHIVED
+}
+
 // ============================================
 // SYSTEM MODELS
 // ============================================
@@ -186,16 +238,20 @@ model Tenant {
   updatedAt         DateTime     @updatedAt
   deletedAt         DateTime?
 
-  users           User[]
-  refreshTokens   RefreshToken[]
-  vehicles        Vehicle[]
-  clients         Client[]
-  reservations    Reservation[]
-  contracts       RentalContract[]
-  payments        Payment[]
-  invoices        Invoice[]
-  vehicleCredits  VehicleCredit[]
-  creditPayments  VehicleCreditPayment[]
+  users                User[]
+  refreshTokens        RefreshToken[]
+  vehicles             Vehicle[]
+  clients              Client[]
+  reservations         Reservation[]
+  contracts            RentalContract[]
+  payments             Payment[]
+  invoices             Invoice[]
+  vehicleCredits       VehicleCredit[]
+  creditPayments       VehicleCreditPayment[]
+  maintenanceRecords   MaintenanceRecord[]
+  maintenanceSchedules MaintenanceSchedule[]
+  alerts               Alert[]
+  notifications        Notification[]
 
   @@index([status])
   @@index([plan])
@@ -223,6 +279,7 @@ model User {
   tenant        Tenant?          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   refreshTokens RefreshToken[]
   createdContracts RentalContract[] @relation("CreatedByUser")
+  notifications Notification[]
 
   @@unique([tenantId, email], name: "tenant_email_unique")
   @@index([tenantId])
@@ -287,10 +344,13 @@ model Vehicle {
   updatedAt            DateTime            @updatedAt
   deletedAt            DateTime?
 
-  tenant       Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  reservations Reservation[]
-  contracts    RentalContract[]
-  credits      VehicleCredit[]
+  tenant              Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  reservations        Reservation[]
+  contracts           RentalContract[]
+  credits             VehicleCredit[]
+  maintenanceRecords  MaintenanceRecord[]
+  maintenanceSchedules MaintenanceSchedule[]
+  alerts              Alert[]
 
   @@unique([tenantId, registration])
   @@index([tenantId])
@@ -561,4 +621,125 @@ model VehicleCreditPayment {
   @@index([scheduledDate])
   @@index([status])
   @@map("vehicle_credit_payments")
+}
+
+// ============================================
+// BUSINESS MODELS - Phase 3 (Maintenance & Alerts)
+// ============================================
+
+/// MaintenanceRecord: a completed maintenance event on a vehicle.
+model MaintenanceRecord {
+  id          String            @id @default(uuid()) @db.Uuid
+  tenantId    String            @db.Uuid
+  vehicleId   String            @db.Uuid
+  type        MaintenanceType
+  status      MaintenanceStatus @default(COMPLETED)
+  title       String            @db.VarChar(255)
+  description String?           @db.Text
+  performedAt DateTime          @default(now())
+  km          Int?
+  cost        Decimal           @default(0) @db.Decimal(12, 2)
+  garage      String?           @db.VarChar(255)
+  reference   String?           @db.VarChar(128)
+  notes       String?           @db.Text
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, vehicleId])
+  @@index([performedAt])
+  @@index([type])
+  @@map("maintenance_records")
+}
+
+/// MaintenanceSchedule: a planned or due maintenance on a vehicle.
+/// When dueDate < now or dueKm < vehicle.currentKm, the schedule is overdue.
+model MaintenanceSchedule {
+  id          String            @id @default(uuid()) @db.Uuid
+  tenantId    String            @db.Uuid
+  vehicleId   String            @db.Uuid
+  type        MaintenanceType
+  status      MaintenanceStatus @default(SCHEDULED)
+  title       String            @db.VarChar(255)
+  description String?           @db.Text
+  dueDate     DateTime?         @db.Date
+  dueKm       Int?
+  isCritical  Boolean           @default(false)
+  completedAt DateTime?
+  completedRecordId String?     @db.Uuid
+  notes       String?           @db.Text
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, vehicleId, status])
+  @@index([dueDate])
+  @@index([isCritical])
+  @@map("maintenance_schedules")
+}
+
+/// Alert: a denormalized, deduplicated warning about something needing attention.
+/// One open alert per (tenant, type, target) — upserts on resync.
+model Alert {
+  id              String        @id @default(uuid()) @db.Uuid
+  tenantId        String        @db.Uuid
+  type            AlertType
+  severity        AlertSeverity @default(WARNING)
+  status          AlertStatus   @default(OPEN)
+  title           String        @db.VarChar(255)
+  message         String        @db.Text
+  vehicleId       String?       @db.Uuid
+  contractId      String?       @db.Uuid
+  invoiceId       String?       @db.Uuid
+  creditId        String?       @db.Uuid
+  scheduleId      String?       @db.Uuid
+  dueAt           DateTime?
+  acknowledgedAt  DateTime?
+  resolvedAt      DateTime?
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vehicle       Vehicle?       @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  notifications Notification[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, severity])
+  @@index([type])
+  @@index([dueAt])
+  @@map("alerts")
+}
+
+/// Notification: in-app (or emailed/SMS in the future) notification delivered
+/// to a specific user, or to all users in a tenant (userId = null).
+model Notification {
+  id        String              @id @default(uuid()) @db.Uuid
+  tenantId  String              @db.Uuid
+  userId    String?             @db.Uuid
+  channel   NotificationChannel @default(IN_APP)
+  status    NotificationStatus  @default(UNREAD)
+  title     String              @db.VarChar(255)
+  body      String              @db.Text
+  link      String?             @db.VarChar(512)
+  alertId   String?             @db.Uuid
+  metadata  Json?
+  readAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alert  Alert? @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, userId, status])
+  @@index([createdAt])
+  @@map("notifications")
 }

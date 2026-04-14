@@ -11,6 +11,7 @@ import {
   buildPagination,
   paginate,
 } from '../../common/dto/pagination.dto';
+import { AlertsService } from '../alerts/alerts.service';
 import { ClientsService } from '../clients/clients.service';
 import { VehiclesRepository } from '../vehicles/vehicles.repository';
 import { VehiclesService } from '../vehicles/vehicles.service';
@@ -26,6 +27,7 @@ export class ReservationsService {
     private readonly vehicles: VehiclesService,
     private readonly vehiclesRepo: VehiclesRepository,
     private readonly clients: ClientsService,
+    private readonly alerts: AlertsService,
   ) {}
 
   async list(
@@ -63,6 +65,14 @@ export class ReservationsService {
 
     const vehicle = await this.vehicles.get(tenantId, dto.vehicleId);
     await this.clients.assertNotBlacklisted(tenantId, dto.clientId);
+
+    // Business rule: refuse a reservation when the vehicle is unfit.
+    const blockers = await this.alerts.getBookingBlockers(tenantId, vehicle.id);
+    if (blockers.length > 0) {
+      throw new ConflictException(
+        `Vehicle ${vehicle.registration} is not bookable: ${blockers.join('; ')}`,
+      );
+    }
 
     const overlap = await this.vehiclesRepo.hasOverlap(tenantId, vehicle.id, start, end);
     if (overlap) {

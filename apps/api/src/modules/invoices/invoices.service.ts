@@ -11,6 +11,7 @@ import {
   paginate,
 } from '../../common/dto/pagination.dto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AlertsService } from '../alerts/alerts.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { ListInvoicesDto } from './dto/list-invoices.dto';
 import { InvoicesRepository } from './invoices.repository';
@@ -23,6 +24,7 @@ export class InvoicesService {
   constructor(
     private readonly repo: InvoicesRepository,
     private readonly prisma: PrismaService,
+    private readonly alerts: AlertsService,
   ) {}
 
   async list(tenantId: string, dto: ListInvoicesDto): Promise<PaginatedResult<Invoice>> {
@@ -71,7 +73,7 @@ export class InvoicesService {
 
     const invoiceNumber = await this.repo.generateNumber(tenantId);
 
-    return this.repo.create({
+    const invoice = await this.repo.create({
       tenantId,
       invoiceNumber,
       clientId: dto.clientId,
@@ -88,6 +90,8 @@ export class InvoicesService {
       lineItems: dto.lineItems as unknown as Prisma.InputJsonValue,
       notes: dto.notes,
     });
+    await this.alerts.syncInvoiceAlerts(tenantId, invoice.id);
+    return invoice;
   }
 
   async markOverdueIfNeeded(tenantId: string, id: string): Promise<void> {

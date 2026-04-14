@@ -1,11 +1,40 @@
+'use client';
+
+import { AlertTriangle, CheckCircle2 } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+
+import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/table';
+import { ApiError } from '@/lib/api';
+import { alertsApi } from '@/lib/resources';
+import type { AlertDto, AlertSeverityName } from '@autosphere/shared';
+
 const STATS = [
   { label: 'Véhicules disponibles', value: '—', sub: 'sur — du parc' },
   { label: 'Contrats actifs', value: '—', sub: 'en cours' },
-  { label: "CA du mois", value: '— MAD', sub: 'vs mois dernier' },
+  { label: 'CA du mois', value: '— MAD', sub: 'vs mois dernier' },
   { label: 'Impayés', value: '— MAD', sub: 'à recouvrer' },
 ];
 
+const SEVERITY_TONE: Record<AlertSeverityName, 'red' | 'amber' | 'blue'> = {
+  CRITICAL: 'red',
+  WARNING: 'amber',
+  INFO: 'blue',
+};
+
 export default function DashboardPage() {
+  const [alerts, setAlerts] = useState<AlertDto[] | null>(null);
+
+  useEffect(() => {
+    alertsApi
+      .list({ status: 'OPEN' })
+      .then((list) => setAlerts(list.slice(0, 6)))
+      .catch((err: unknown) => {
+        if (err instanceof ApiError) setAlerts([]);
+      });
+  }, []);
+
   return (
     <div className="space-y-6 max-w-container">
       <div>
@@ -37,10 +66,54 @@ export default function DashboardPage() {
             Graphique à venir
           </div>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-sm font-semibold text-slate-900">Retours du jour</h2>
-          <div className="mt-4 text-sm text-slate-400">Aucun retour prévu.</div>
-        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Alertes ouvertes</CardTitle>
+            <Link href="/alerts" className="text-xs font-medium text-secondary hover:underline">
+              Voir tout
+            </Link>
+          </CardHeader>
+          <CardBody className="space-y-2">
+            {alerts === null ? (
+              <p className="text-sm text-slate-400 text-center py-6">Chargement…</p>
+            ) : alerts.length === 0 ? (
+              <div className="text-sm text-slate-400 text-center py-6">
+                <CheckCircle2 className="h-6 w-6 mx-auto mb-2 text-emerald-400" />
+                Aucune alerte ouverte.
+              </div>
+            ) : (
+              alerts.map((a) => (
+                <Link
+                  key={a.id}
+                  href="/alerts"
+                  className="flex items-start gap-3 p-2 -mx-2 rounded-lg hover:bg-slate-50 transition"
+                >
+                  <div
+                    className={`mt-0.5 p-1.5 rounded-md shrink-0 ${
+                      a.severity === 'CRITICAL'
+                        ? 'bg-red-100 text-red-600'
+                        : a.severity === 'WARNING'
+                          ? 'bg-amber-100 text-amber-600'
+                          : 'bg-blue-100 text-blue-600'
+                    }`}
+                  >
+                    <AlertTriangle className="h-3 w-3" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-semibold text-slate-900 truncate flex-1">
+                        {a.title}
+                      </p>
+                      <Badge tone={SEVERITY_TONE[a.severity]}>{a.severity}</Badge>
+                    </div>
+                    <p className="text-xs text-slate-500 line-clamp-1">{a.message}</p>
+                  </div>
+                </Link>
+              ))
+            )}
+          </CardBody>
+        </Card>
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ import {
   Wrench,
   Landmark,
   BarChart3,
+  BellRing,
   Settings,
 } from 'lucide-react';
 
@@ -23,6 +24,7 @@ const NAV_ITEMS = [
   { href: '/payments', label: 'Paiements', icon: CreditCard },
   { href: '/maintenance', label: 'Maintenance', icon: Wrench },
   { href: '/credits', label: 'Crédits & Financement', icon: Landmark },
+  { href: '/alerts', label: 'Alertes', icon: BellRing },
   { href: '/reports', label: 'Rapports', icon: BarChart3 },
   { href: '/settings', label: 'Paramètres', icon: Settings },
 ];
