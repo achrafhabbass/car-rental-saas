@@ -1,6 +1,44 @@
+'use client';
+
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState, type FormEvent } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Field, Input } from '@/components/ui/input';
+import { ApiError } from '@/lib/api';
+import { authApi } from '@/lib/resources';
+import { session } from '@/lib/session';
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    const fd = new FormData(e.currentTarget);
+    try {
+      const result = await authApi.login({
+        email: String(fd.get('email')),
+        password: String(fd.get('password')),
+      });
+      session.set({
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        tenantId: result.tenantId,
+      });
+      router.push('/dashboard');
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Connexion échouée');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div>
       <h2 className="text-2xl font-bold text-slate-900">Se connecter</h2>
@@ -8,47 +46,23 @@ export default function LoginPage() {
         Accédez à votre espace de gestion AutoSphere.
       </p>
 
-      <form className="mt-8 space-y-5" action="#" method="post">
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-slate-700">
-            Adresse email
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            className="mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-            placeholder="vous@entreprise.ma"
-          />
-        </div>
-        <div>
-          <div className="flex items-center justify-between">
-            <label htmlFor="password" className="block text-sm font-medium text-slate-700">
-              Mot de passe
-            </label>
-            <Link href="/forgot-password" className="text-xs text-secondary hover:underline">
-              Oublié ?
-            </Link>
-          </div>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            className="mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-            placeholder="••••••••"
-          />
-        </div>
+      <form className="mt-8 space-y-5" onSubmit={onSubmit}>
+        <Field label="Adresse email" htmlFor="email" required>
+          <Input id="email" name="email" type="email" autoComplete="email" required placeholder="vous@entreprise.ma" />
+        </Field>
+        <Field label="Mot de passe" htmlFor="password" required>
+          <Input id="password" name="password" type="password" autoComplete="current-password" required minLength={8} placeholder="••••••••" />
+        </Field>
 
-        <button
-          type="submit"
-          className="w-full rounded-lg bg-primary-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-600 transition"
-        >
+        {error && (
+          <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
+            {error}
+          </div>
+        )}
+
+        <Button type="submit" loading={loading} className="w-full">
           Se connecter
-        </button>
+        </Button>
       </form>
 
       <p className="mt-8 text-center text-sm text-slate-500">

@@ -7,9 +7,13 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import configuration from './config/configuration';
 import { validationSchema } from './config/validation';
 import { AuthModule } from './modules/auth/auth.module';
+import { ClientsModule } from './modules/clients/clients.module';
+import { ContractsModule } from './modules/contracts/contracts.module';
 import { HealthModule } from './modules/health/health.module';
+import { ReservationsModule } from './modules/reservations/reservations.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
 import { UsersModule } from './modules/users/users.module';
+import { VehiclesModule } from './modules/vehicles/vehicles.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -37,6 +41,10 @@ import { PrismaModule } from './prisma/prisma.module';
     AuthModule,
     UsersModule,
     TenantsModule,
+    VehiclesModule,
+    ClientsModule,
+    ReservationsModule,
+    ContractsModule,
   ],
   providers: [
     TenantMiddleware,
