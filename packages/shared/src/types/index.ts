@@ -12,3 +12,4 @@ export * from './credit';
 export * from './maintenance';
 export * from './alert';
 export * from './notification';
+export * from './analytics';

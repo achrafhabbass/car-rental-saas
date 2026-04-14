@@ -118,3 +118,40 @@ export const api = {
   delete: <T>(path: string, opts?: ApiOptions) =>
     apiFetch<T>(path, { ...opts, method: 'DELETE' }),
 };
+
+/// Triggers a browser download for an authenticated file endpoint.
+/// Fetches the response as text (CSV), wraps it in a blob, and clicks an
+/// invisible anchor so the browser saves the file. Uses the same Authorization
+/// + tenant headers as the rest of the API client.
+export async function downloadFile(
+  path: string,
+  filename: string,
+): Promise<void> {
+  const url = path.startsWith('http') ? path : `${API_URL}${path}`;
+  const headers: Record<string, string> = { Accept: 'text/csv' };
+  const token = session.getAccessToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const tenant = session.getTenantId();
+  if (tenant) headers['x-tenant-id'] = tenant;
+
+  const res = await fetch(url, { headers });
+  if (!res.ok) {
+    throw new ApiError(res.status, {
+      statusCode: res.status,
+      message: res.statusText,
+      error: 'DownloadFailed',
+      path,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  const blob = await res.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = objectUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+}

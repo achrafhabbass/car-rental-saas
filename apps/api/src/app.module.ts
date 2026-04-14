@@ -9,6 +9,7 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import configuration from './config/configuration';
 import { validationSchema } from './config/validation';
 import { AlertsModule } from './modules/alerts/alerts.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ClientsModule } from './modules/clients/clients.module';
 import { ContractsModule } from './modules/contracts/contracts.module';
@@ -69,6 +70,7 @@ import { PrismaModule } from './prisma/prisma.module';
     InvoicesModule,
     VehicleCreditsModule,
     MaintenanceModule,
+    AnalyticsModule,
   ],
   providers: [
     TenantMiddleware,

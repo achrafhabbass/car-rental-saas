@@ -2,6 +2,11 @@ import type {
   AlertDto,
   AlertSummaryDto,
   AuthProfileDto,
+  ClientPerformanceDto,
+  DashboardKpisDto,
+  ReportGranularity,
+  RevenuePointDto,
+  VehiclePerformanceDto,
   AuthTokensDto,
   ClientDto,
   CreateClientInput,
@@ -241,3 +246,25 @@ export const notificationsApi = {
   markAllRead: () =>
     api.post<{ count: number }>('/notifications/read-all'),
 };
+
+// -------- Analytics --------
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001/api/v1';
+
+export const analyticsApi = {
+  dashboard: () => api.get<DashboardKpisDto>('/analytics/dashboard'),
+  revenue: (windowDays: number, granularity: ReportGranularity = 'day') =>
+    api.get<RevenuePointDto[]>(
+      `/analytics/revenue${qs({ windowDays, granularity })}`,
+    ),
+  fleetPerformance: (limit = 10) =>
+    api.get<VehiclePerformanceDto[]>(`/analytics/fleet/performance${qs({ limit })}`),
+  topClients: (limit = 10) =>
+    api.get<ClientPerformanceDto[]>(`/analytics/clients/top${qs({ limit })}`),
+  /// Returns a CSV export URL ready for use with <a href download>.
+  /// The Authorization header can't be set on an anchor download, so the caller
+  /// should fetch the blob with the auth-enabled client and build an object URL.
+  exportUrl: (kind: 'contracts' | 'invoices' | 'payments') =>
+    `${API_URL}/analytics/exports/${kind}.csv`,
+};
+
