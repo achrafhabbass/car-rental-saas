@@ -1,0 +1,34 @@
+{
+  "name": "autosphere-saas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AutoSphere SaaS - Multi-tenant car rental management platform",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "pnpm -r --parallel run dev",
+    "dev:api": "pnpm --filter @autosphere/api run dev",
+    "dev:web": "pnpm --filter @autosphere/web run dev",
+    "build": "pnpm -r run build",
+    "lint": "pnpm -r run lint",
+    "test": "pnpm -r run test",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "db:migrate": "pnpm --filter @autosphere/api run prisma:migrate",
+    "db:generate": "pnpm --filter @autosphere/api run prisma:generate",
+    "db:studio": "pnpm --filter @autosphere/api run prisma:studio"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@9.0.0"
+}

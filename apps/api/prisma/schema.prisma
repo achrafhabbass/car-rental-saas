@@ -1,0 +1,136 @@
+// ============================================
+// AutoSphere SaaS - Prisma Schema
+// Multi-tenant strategy: shared database, tenant_id filtering
+// ============================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum TenantStatus {
+  ACTIVE
+  TRIAL
+  SUSPENDED
+  EXPIRED
+  CANCELLED
+}
+
+enum TenantPlan {
+  STARTER
+  BUSINESS
+  ENTERPRISE
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  OWNER
+  MANAGER
+  AGENT
+  ACCOUNTANT
+  VIEWER
+}
+
+enum UserStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+  DISABLED
+}
+
+// ============================================
+// SYSTEM (Platform-level) MODELS
+// ============================================
+
+/// Tenant represents a customer organization (rental company).
+/// All tenant-scoped models carry a tenantId FK for isolation.
+model Tenant {
+  id                String       @id @default(uuid()) @db.Uuid
+  name              String       @db.VarChar(255)
+  slug              String       @unique @db.VarChar(100)
+  subdomain         String?      @unique @db.VarChar(100)
+  status            TenantStatus @default(TRIAL)
+  plan              TenantPlan   @default(STARTER)
+  billingEmail      String?      @db.VarChar(255)
+  phone             String?      @db.VarChar(32)
+  country           String?      @db.VarChar(8)
+  locale            String       @default("fr") @db.VarChar(8)
+  timezone          String       @default("Africa/Casablanca") @db.VarChar(64)
+  currency          String       @default("MAD") @db.VarChar(8)
+  subscriptionStart DateTime?    @db.Date
+  subscriptionEnd   DateTime?    @db.Date
+  trialEndsAt       DateTime?
+  metadata          Json?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  deletedAt         DateTime?
+
+  users             User[]
+  refreshTokens     RefreshToken[]
+
+  @@index([status])
+  @@index([plan])
+  @@map("tenants")
+}
+
+/// User belongs to exactly one Tenant (except SUPER_ADMIN which has tenantId = null).
+/// Email is unique per tenant (compound unique).
+model User {
+  id              String     @id @default(uuid()) @db.Uuid
+  tenantId        String?    @db.Uuid
+  email           String     @db.VarChar(255)
+  passwordHash    String     @db.VarChar(255)
+  firstName       String     @db.VarChar(120)
+  lastName        String     @db.VarChar(120)
+  role            UserRole   @default(VIEWER)
+  status          UserStatus @default(ACTIVE)
+  emailVerifiedAt DateTime?
+  mfaEnabled      Boolean    @default(false)
+  mfaSecret       String?    @db.VarChar(255)
+  lastLoginAt     DateTime?
+  metadata        Json?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  deletedAt       DateTime?
+
+  tenant          Tenant?        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  refreshTokens   RefreshToken[]
+
+  @@unique([tenantId, email], name: "tenant_email_unique")
+  @@index([tenantId])
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+/// Refresh tokens are opaque and hashed at rest.
+/// Rotation + revocation supported via revokedAt and replacedById.
+model RefreshToken {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @db.Uuid
+  tenantId       String?   @db.Uuid
+  tokenHash      String    @unique @db.VarChar(255)
+  userAgent      String?   @db.VarChar(512)
+  ipAddress      String?   @db.VarChar(64)
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  replacedById   String?   @db.Uuid
+  createdAt      DateTime  @default(now())
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant         Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tenantId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
