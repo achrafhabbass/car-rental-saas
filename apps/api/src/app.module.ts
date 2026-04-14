@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { TenantGuard } from './common/guards/tenant.guard';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
@@ -76,6 +77,11 @@ import { PrismaModule } from './prisma/prisma.module';
   ],
   providers: [
     TenantMiddleware,
+    // Guard chain, executed in declaration order:
+    //   JwtAuthGuard → ThrottlerGuard → TenantGuard → RolesGuard
+    // Registering them all here guarantees JwtAuthGuard (which populates
+    // req.user) runs before any guard that depends on req.user.
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: TenantGuard },
     { provide: APP_GUARD, useClass: RolesGuard },

@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 
@@ -13,6 +12,11 @@ import { AuthService } from './auth.service';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
+/**
+ * AuthModule intentionally does NOT register JwtAuthGuard as APP_GUARD here.
+ * The root AppModule registers the full guard chain in the correct order
+ * (JwtAuth → Throttler → Tenant → Roles) so dependent guards see req.user.
+ */
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -28,13 +32,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     TenantsModule,
   ],
   controllers: [AuthController],
-  providers: [
-    AuthService,
-    AuthRepository,
-    JwtStrategy,
-    JwtRefreshStrategy,
-    { provide: APP_GUARD, useClass: JwtAuthGuard },
-  ],
-  exports: [AuthService, JwtModule],
+  providers: [AuthService, AuthRepository, JwtStrategy, JwtRefreshStrategy, JwtAuthGuard],
+  exports: [AuthService, JwtModule, JwtAuthGuard],
 })
 export class AuthModule {}

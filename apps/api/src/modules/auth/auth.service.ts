@@ -139,6 +139,8 @@ export class AuthService {
       throw new UnauthorizedException('User is not active');
     }
 
+    // issueTokens() already persists the new refresh token row, so we
+    // only need to look it up afterwards to chain the replacedById.
     const newTokens = await this.issueTokens({
       sub: user.id,
       email: user.email,
@@ -147,14 +149,8 @@ export class AuthService {
     });
 
     const newHash = this.hashToken(newTokens.refreshToken);
-    const newStored = await this.authRepo.createRefreshToken({
-      userId: user.id,
-      tenantId: user.tenantId,
-      tokenHash: newHash,
-      expiresAt: this.computeRefreshExpiry(),
-    });
-
-    await this.authRepo.revokeRefreshToken(stored.id, newStored.id);
+    const newStored = await this.authRepo.findActiveRefreshTokenByHash(newHash);
+    await this.authRepo.revokeRefreshToken(stored.id, newStored?.id);
 
     return newTokens;
   }

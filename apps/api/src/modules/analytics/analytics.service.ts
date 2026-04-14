@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { csvEscape } from './csv';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -376,12 +377,12 @@ export class AnalyticsService {
     for (const c of rows) {
       lines.push(
         [
-          csv(c.contractNumber),
+          csvEscape(c.contractNumber),
           c.status,
-          csv(`${c.vehicle.brand} ${c.vehicle.model}`),
-          csv(c.vehicle.registration),
-          csv(c.client.fullName),
-          csv(c.client.idNumber),
+          csvEscape(`${c.vehicle.brand} ${c.vehicle.model}`),
+          csvEscape(c.vehicle.registration),
+          csvEscape(c.client.fullName),
+          csvEscape(c.client.idNumber),
           c.startDate.toISOString(),
           c.endDate.toISOString(),
           c.actualReturnDate?.toISOString() ?? '',
@@ -420,9 +421,9 @@ export class AnalyticsService {
     for (const i of rows) {
       lines.push(
         [
-          csv(i.invoiceNumber),
+          csvEscape(i.invoiceNumber),
           i.status,
-          csv(i.client.fullName),
+          csvEscape(i.client.fullName),
           i.issueDate.toISOString().slice(0, 10),
           i.dueDate?.toISOString().slice(0, 10) ?? '',
           Number(i.subtotal).toFixed(2),
@@ -461,28 +462,18 @@ export class AnalyticsService {
     for (const p of rows) {
       lines.push(
         [
-          csv(p.paymentCode),
+          csvEscape(p.paymentCode),
           p.status,
           p.method,
           Number(p.amount).toFixed(2),
-          csv(p.client.fullName),
-          csv(p.invoice?.invoiceNumber ?? ''),
-          csv(p.contract?.contractNumber ?? ''),
-          csv(p.reference ?? ''),
+          csvEscape(p.client.fullName),
+          csvEscape(p.invoice?.invoiceNumber ?? ''),
+          csvEscape(p.contract?.contractNumber ?? ''),
+          csvEscape(p.reference ?? ''),
           p.paidAt.toISOString(),
         ].join(','),
       );
     }
     return lines.join('\n');
   }
-}
-
-/// Escape a field for CSV: wrap in quotes if it contains comma/quote/newline,
-/// and double any embedded quotes.
-function csv(value: string): string {
-  if (!value) return '';
-  if (/[",\n\r]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
 }
