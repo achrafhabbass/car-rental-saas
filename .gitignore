@@ -52,3 +52,4 @@ tmp/
 # Claude Code local/runtime state (keep launch.json tracked for team)
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
+REPORT.json
