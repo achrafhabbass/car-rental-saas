@@ -3,16 +3,24 @@ import type {
   ClientDto,
   CreateClientInput,
   CreateContractInput,
+  CreateInvoiceInput,
+  CreatePaymentInput,
   CreateReservationInput,
+  CreateVehicleCreditInput,
   CreateVehicleInput,
+  CreditPaymentDto,
+  InvoiceDto,
   LoginRequest,
   PaginatedResult,
   PaginationQuery,
+  PaymentDto,
+  RecordCreditPaymentInput,
   RegisterRequest,
   RentalContractDto,
   ReservationDto,
   UpdateClientInput,
   UpdateVehicleInput,
+  VehicleCreditDto,
   VehicleDto,
 } from '@autosphere/shared';
 
@@ -114,4 +122,56 @@ export const contractsApi = {
   complete: (id: string, body: { kmEnd: number; extraCharges?: number; actualReturnDate?: string; notes?: string }) =>
     api.post<RentalContractDto>(`/contracts/${id}/complete`, body),
   cancel: (id: string) => api.post<RentalContractDto>(`/contracts/${id}/cancel`),
+};
+
+// -------- Payments --------
+
+export interface ListPaymentsQuery extends PaginationQuery {
+  status?: string;
+  method?: string;
+  contractId?: string;
+  clientId?: string;
+  invoiceId?: string;
+}
+
+export const paymentsApi = {
+  list: (q?: ListPaymentsQuery) =>
+    api.get<PaginatedResult<PaymentDto>>(`/payments${qs(q)}`),
+  get: (id: string) => api.get<PaymentDto>(`/payments/${id}`),
+  create: (body: CreatePaymentInput) => api.post<PaymentDto>('/payments', body),
+};
+
+// -------- Invoices --------
+
+export interface ListInvoicesQuery extends PaginationQuery {
+  status?: string;
+  contractId?: string;
+  clientId?: string;
+}
+
+export const invoicesApi = {
+  list: (q?: ListInvoicesQuery) =>
+    api.get<PaginatedResult<InvoiceDto>>(`/invoices${qs(q)}`),
+  get: (id: string) => api.get<InvoiceDto>(`/invoices/${id}`),
+  create: (body: CreateInvoiceInput) => api.post<InvoiceDto>('/invoices', body),
+};
+
+// -------- Vehicle Credits --------
+
+export interface ListCreditsQuery extends PaginationQuery {
+  status?: string;
+  creditType?: string;
+  vehicleId?: string;
+}
+
+export const creditsApi = {
+  list: (q?: ListCreditsQuery) =>
+    api.get<PaginatedResult<VehicleCreditDto>>(`/vehicle-credits${qs(q)}`),
+  get: (id: string) => api.get<VehicleCreditDto>(`/vehicle-credits/${id}`),
+  schedule: (id: string) =>
+    api.get<CreditPaymentDto[]>(`/vehicle-credits/${id}/schedule`),
+  create: (body: CreateVehicleCreditInput) =>
+    api.post<VehicleCreditDto>('/vehicle-credits', body),
+  recordPayment: (id: string, paymentId: string, body: RecordCreditPaymentInput) =>
+    api.post<CreditPaymentDto>(`/vehicle-credits/${id}/payments/${paymentId}`, body),
 };

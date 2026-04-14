@@ -114,6 +114,48 @@ enum DepositMethod {
   BANK_TRANSFER
 }
 
+enum PaymentMethod {
+  CASH
+  CHECK
+  CARD
+  BANK_TRANSFER
+  ONLINE
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  REFUNDED
+  FAILED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PARTIAL
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum CreditType {
+  BANK_CREDIT
+  LEASING
+}
+
+enum CreditStatus {
+  ACTIVE
+  PAID_OFF
+  DEFAULTED
+}
+
+enum CreditPaymentStatus {
+  SCHEDULED
+  PAID
+  LATE
+  SKIPPED
+}
+
 // ============================================
 // SYSTEM MODELS
 // ============================================
@@ -139,12 +181,16 @@ model Tenant {
   updatedAt         DateTime     @updatedAt
   deletedAt         DateTime?
 
-  users         User[]
-  refreshTokens RefreshToken[]
-  vehicles      Vehicle[]
-  clients       Client[]
-  reservations  Reservation[]
-  contracts     RentalContract[]
+  users           User[]
+  refreshTokens   RefreshToken[]
+  vehicles        Vehicle[]
+  clients         Client[]
+  reservations    Reservation[]
+  contracts       RentalContract[]
+  payments        Payment[]
+  invoices        Invoice[]
+  vehicleCredits  VehicleCredit[]
+  creditPayments  VehicleCreditPayment[]
 
   @@index([status])
   @@index([plan])
@@ -239,6 +285,7 @@ model Vehicle {
   tenant       Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   reservations Reservation[]
   contracts    RentalContract[]
+  credits      VehicleCredit[]
 
   @@unique([tenantId, registration])
   @@index([tenantId])
@@ -279,6 +326,8 @@ model Client {
   tenant       Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   reservations Reservation[]
   contracts    RentalContract[]
+  payments     Payment[]
+  invoices     Invoice[]
 
   @@unique([tenantId, idNumber])
   @@index([tenantId])
@@ -361,6 +410,8 @@ model RentalContract {
   client      Client       @relation(fields: [clientId], references: [id])
   reservation Reservation? @relation(fields: [reservationId], references: [id])
   createdBy   User?        @relation("CreatedByUser", fields: [createdByUserId], references: [id])
+  payments    Payment[]
+  invoices    Invoice[]
 
   @@unique([tenantId, contractNumber])
   @@index([tenantId])
@@ -368,4 +419,141 @@ model RentalContract {
   @@index([vehicleId, startDate, endDate])
   @@index([clientId])
   @@map("rental_contracts")
+}
+
+// ============================================
+// BUSINESS MODELS - Phase 2 (Financial)
+// ============================================
+
+/// Payment: money received from a client, optionally tied to a contract/invoice.
+model Payment {
+  id            String        @id @default(uuid()) @db.Uuid
+  tenantId      String        @db.Uuid
+  paymentCode   String        @db.VarChar(32)
+  contractId    String?       @db.Uuid
+  invoiceId     String?       @db.Uuid
+  clientId      String        @db.Uuid
+  amount        Decimal       @db.Decimal(12, 2)
+  method        PaymentMethod @default(CASH)
+  reference     String?       @db.VarChar(128)
+  paidAt        DateTime      @default(now())
+  status        PaymentStatus @default(CONFIRMED)
+  notes         String?       @db.Text
+  metadata      Json?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  tenant   Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contract RentalContract? @relation(fields: [contractId], references: [id])
+  invoice  Invoice?        @relation(fields: [invoiceId], references: [id])
+  client   Client          @relation(fields: [clientId], references: [id])
+
+  @@unique([tenantId, paymentCode])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([contractId])
+  @@index([invoiceId])
+  @@index([clientId])
+  @@index([paidAt])
+  @@map("payments")
+}
+
+/// Invoice: issued to a client, usually tied to a contract. TVA tracked at invoice level.
+model Invoice {
+  id             String        @id @default(uuid()) @db.Uuid
+  tenantId       String        @db.Uuid
+  invoiceNumber  String        @db.VarChar(32)
+  contractId     String?       @db.Uuid
+  clientId       String        @db.Uuid
+  issueDate      DateTime      @default(now()) @db.Date
+  dueDate        DateTime?     @db.Date
+  subtotal       Decimal       @db.Decimal(12, 2)
+  taxRate        Decimal       @default(20) @db.Decimal(5, 2)
+  taxAmount      Decimal       @db.Decimal(12, 2)
+  total          Decimal       @db.Decimal(12, 2)
+  amountPaid     Decimal       @default(0) @db.Decimal(12, 2)
+  balance        Decimal       @db.Decimal(12, 2)
+  status         InvoiceStatus @default(DRAFT)
+  paidAt         DateTime?
+  lineItems      Json          @default("[]")
+  notes          String?       @db.Text
+  metadata       Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  tenant   Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contract RentalContract? @relation(fields: [contractId], references: [id])
+  client   Client          @relation(fields: [clientId], references: [id])
+  payments Payment[]
+
+  @@unique([tenantId, invoiceNumber])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([contractId])
+  @@index([clientId])
+  @@index([dueDate])
+  @@map("invoices")
+}
+
+/// VehicleCredit: bank credit or leasing agreement for financing a vehicle.
+model VehicleCredit {
+  id                String       @id @default(uuid()) @db.Uuid
+  tenantId          String       @db.Uuid
+  vehicleId         String       @db.Uuid
+  bankName          String       @db.VarChar(255)
+  accountNumber     String?      @db.VarChar(64)
+  creditType        CreditType   @default(BANK_CREDIT)
+  principal         Decimal      @db.Decimal(12, 2)
+  downPayment       Decimal      @default(0) @db.Decimal(12, 2)
+  interestRate      Decimal      @db.Decimal(5, 2)
+  termMonths        Int
+  monthlyPayment    Decimal      @db.Decimal(10, 2)
+  residualValue     Decimal?     @db.Decimal(12, 2)
+  startDate         DateTime     @db.Date
+  endDate           DateTime     @db.Date
+  remainingBalance  Decimal      @db.Decimal(12, 2)
+  totalPaid         Decimal      @default(0) @db.Decimal(12, 2)
+  status            CreditStatus @default(ACTIVE)
+  notes             String?      @db.Text
+  metadata          Json?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  tenant   Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vehicle  Vehicle                @relation(fields: [vehicleId], references: [id])
+  payments VehicleCreditPayment[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([vehicleId])
+  @@map("vehicle_credits")
+}
+
+/// VehicleCreditPayment: one row per month of the amortization schedule.
+model VehicleCreditPayment {
+  id                String              @id @default(uuid()) @db.Uuid
+  tenantId          String              @db.Uuid
+  creditId          String              @db.Uuid
+  installmentNumber Int
+  scheduledDate     DateTime            @db.Date
+  scheduledAmount   Decimal             @db.Decimal(10, 2)
+  principalPortion  Decimal             @db.Decimal(10, 2)
+  interestPortion   Decimal             @db.Decimal(10, 2)
+  paidAt            DateTime?
+  paidAmount        Decimal?            @db.Decimal(10, 2)
+  reference         String?             @db.VarChar(128)
+  status            CreditPaymentStatus @default(SCHEDULED)
+  notes             String?             @db.Text
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  tenant Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  credit VehicleCredit @relation(fields: [creditId], references: [id], onDelete: Cascade)
+
+  @@unique([creditId, installmentNumber])
+  @@index([tenantId])
+  @@index([creditId])
+  @@index([scheduledDate])
+  @@index([status])
+  @@map("vehicle_credit_payments")
 }

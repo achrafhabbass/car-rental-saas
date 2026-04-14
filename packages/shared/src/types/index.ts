@@ -6,3 +6,6 @@ export * from './vehicle';
 export * from './client';
 export * from './reservation';
 export * from './contract';
+export * from './payment';
+export * from './invoice';
+export * from './credit';

@@ -10,9 +10,12 @@ import { AuthModule } from './modules/auth/auth.module';
 import { ClientsModule } from './modules/clients/clients.module';
 import { ContractsModule } from './modules/contracts/contracts.module';
 import { HealthModule } from './modules/health/health.module';
+import { InvoicesModule } from './modules/invoices/invoices.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 import { ReservationsModule } from './modules/reservations/reservations.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
 import { UsersModule } from './modules/users/users.module';
+import { VehicleCreditsModule } from './modules/vehicle-credits/vehicle-credits.module';
 import { VehiclesModule } from './modules/vehicles/vehicles.module';
 import { PrismaModule } from './prisma/prisma.module';
 
@@ -45,6 +48,9 @@ import { PrismaModule } from './prisma/prisma.module';
     ClientsModule,
     ReservationsModule,
     ContractsModule,
+    PaymentsModule,
+    InvoicesModule,
+    VehicleCreditsModule,
   ],
   providers: [
     TenantMiddleware,
