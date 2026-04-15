@@ -13,6 +13,7 @@ import {
 } from '../../common/dto/pagination.dto';
 import { AlertsService } from '../alerts/alerts.service';
 import { ClientsService } from '../clients/clients.service';
+import { buildContractPdf } from './contract-pdf';
 import { VehiclesRepository } from '../vehicles/vehicles.repository';
 import { VehiclesService } from '../vehicles/vehicles.service';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -42,7 +43,12 @@ export class ContractsService {
     if (dto.vehicleId) where.vehicleId = dto.vehicleId;
     if (dto.clientId) where.clientId = dto.clientId;
     if (dto.search) {
-      where.contractNumber = { contains: dto.search, mode: 'insensitive' };
+      const q = dto.search;
+      where.OR = [
+        { contractNumber: { contains: q, mode: 'insensitive' } },
+        { client: { fullName: { contains: q, mode: 'insensitive' } } },
+        { vehicle: { registration: { contains: q, mode: 'insensitive' } } },
+      ];
     }
     const [items, total] = await this.repo.list(tenantId, where, skip, take, orderBy);
     return paginate(items, total, dto);
@@ -90,12 +96,14 @@ export class ContractsService {
       );
     }
 
+    // When converting from a reservation we must exclude that reservation
+    // from the overlap check — otherwise it conflicts with itself.
     const overlap = await this.vehiclesRepo.hasOverlap(
       tenantId,
       vehicle.id,
       start,
       end,
-      undefined,
+      dto.reservationId,
       undefined,
     );
     if (overlap) {
@@ -199,6 +207,70 @@ export class ContractsService {
 
       const fresh = await tx.rentalContract.findUniqueOrThrow({ where: { id: contract.id } });
       return fresh;
+    });
+  }
+
+  async generatePdfStream(tenantId: string, id: string): Promise<NodeJS.ReadableStream> {
+    const contract = await this.prisma.rentalContract.findFirst({
+      where: { id, tenantId },
+      include: { vehicle: true, client: true, tenant: true },
+    });
+    if (!contract) throw new NotFoundException(`Contract ${id} not found`);
+
+    // Stamp the metadata so the UI can show "PDF generated on …"
+    await this.prisma.rentalContract.update({
+      where: { id: contract.id },
+      data: {
+        metadata: {
+          ...((contract.metadata as Record<string, unknown> | null) ?? {}),
+          lastPdfAt: new Date().toISOString(),
+        },
+      },
+    });
+
+    return buildContractPdf({
+      tenant: {
+        name: contract.tenant.name,
+        phone: contract.tenant.phone,
+        billingEmail: contract.tenant.billingEmail,
+      },
+      contract: {
+        contractNumber: contract.contractNumber,
+        startDate: contract.startDate,
+        endDate: contract.endDate,
+        actualReturnDate: contract.actualReturnDate,
+        kmStart: contract.kmStart,
+        kmEnd: contract.kmEnd,
+        kmAllowance: contract.kmAllowance,
+        dailyRate: contract.dailyRate.toString(),
+        totalAmount: contract.totalAmount.toString(),
+        depositAmount: contract.depositAmount.toString(),
+        depositMethod: contract.depositMethod,
+        pickupLocation: contract.pickupLocation,
+        returnLocation: contract.returnLocation,
+        additionalDriver: contract.additionalDriver,
+        notes: contract.notes,
+        status: contract.status,
+        createdAt: contract.createdAt,
+      },
+      vehicle: {
+        registration: contract.vehicle.registration,
+        brand: contract.vehicle.brand,
+        model: contract.vehicle.model,
+        year: contract.vehicle.year,
+        color: contract.vehicle.color,
+        vin: contract.vehicle.vin,
+      },
+      client: {
+        fullName: contract.client.fullName,
+        idNumber: contract.client.idNumber,
+        idType: contract.client.idType,
+        licenseNumber: contract.client.licenseNumber,
+        phone: contract.client.phone,
+        email: contract.client.email,
+        addressLine1: contract.client.addressLine1,
+        city: contract.client.city,
+      },
     });
   }
 

@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
+import { SearchInput } from '@/components/ui/search-input';
 import { Badge, Table, Tbody, Td, Th, Thead, Tr } from '@/components/ui/table';
 import { ApiError } from '@/lib/api';
 import { reservationsApi } from '@/lib/resources';
@@ -18,6 +19,15 @@ const STATUS_TONE: Record<string, 'green' | 'blue' | 'amber' | 'red' | 'slate'> 
   CONVERTED: 'green',
   CANCELLED: 'red',
   NO_SHOW: 'slate',
+  OVERDUE: 'red',
+  COMPLETED: 'green',
+};
+
+const PAYMENT_TONE: Record<string, 'green' | 'amber' | 'red' | 'slate'> = {
+  PENDING: 'amber',
+  PARTIAL: 'amber',
+  PAID: 'green',
+  REFUNDED: 'slate',
 };
 
 function formatDate(iso: string): string {
@@ -29,18 +39,27 @@ export default function ReservationsPage() {
   const [items, setItems] = useState<ReservationDto[] | null>(null);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [searching, setSearching] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback((q: string) => {
+    setSearching(true);
     reservationsApi
-      .list({ pageSize: 50, sortBy: 'startDate', sortDir: 'desc' })
+      .list({ pageSize: 50, sortBy: 'startDate', sortDir: 'desc', search: q || undefined })
       .then((r) => {
         setItems(r.items);
         setTotal(r.total);
+        setError(null);
       })
       .catch((err: unknown) =>
         setError(err instanceof ApiError ? err.message : 'Chargement échoué'),
-      );
+      )
+      .finally(() => setSearching(false));
   }, []);
+
+  useEffect(() => {
+    load(search);
+  }, [load, search]);
 
   return (
     <div className="space-y-6 max-w-container">
@@ -57,6 +76,14 @@ export default function ReservationsPage() {
         }
       />
 
+      <div className="flex justify-end">
+        <SearchInput
+          onSearch={setSearch}
+          loading={searching}
+          placeholder="Code, client, immatriculation…"
+        />
+      </div>
+
       <Card>
         {error && (
           <div className="border-b border-red-200 bg-red-50 px-5 py-3 text-xs text-red-700">
@@ -69,7 +96,7 @@ export default function ReservationsPage() {
               <Th>Code</Th>
               <Th>Période</Th>
               <Th>Statut</Th>
-              <Th>Source</Th>
+              <Th>Paiement</Th>
               <Th>Total</Th>
             </Tr>
           </Thead>
@@ -87,14 +114,25 @@ export default function ReservationsPage() {
             ) : (
               items.map((r) => (
                 <Tr key={r.id}>
-                  <Td className="font-medium text-slate-900">{r.reservationCode}</Td>
+                  <Td>
+                    <Link
+                      href={`/reservations/${r.id}`}
+                      className="font-medium text-slate-900 hover:text-primary-500"
+                    >
+                      {r.reservationCode}
+                    </Link>
+                  </Td>
                   <Td>
                     {formatDate(r.startDate)} → {formatDate(r.endDate)}
                   </Td>
                   <Td>
                     <Badge tone={STATUS_TONE[r.status] ?? 'slate'}>{r.status}</Badge>
                   </Td>
-                  <Td>{r.source}</Td>
+                  <Td>
+                    <Badge tone={PAYMENT_TONE[r.paymentStatus] ?? 'slate'}>
+                      {r.paymentStatus}
+                    </Badge>
+                  </Td>
                   <Td>{Number(r.totalAmount).toFixed(2)} MAD</Td>
                 </Tr>
               ))

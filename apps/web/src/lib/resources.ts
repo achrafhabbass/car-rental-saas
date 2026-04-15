@@ -122,6 +122,22 @@ export const reservationsApi = {
   create: (body: CreateReservationInput) =>
     api.post<ReservationDto>('/reservations', body),
   cancel: (id: string) => api.post<ReservationDto>(`/reservations/${id}/cancel`),
+  updatePaymentStatus: (
+    id: string,
+    paymentStatus: 'PENDING' | 'PARTIAL' | 'PAID' | 'REFUNDED',
+  ) =>
+    api.patch<ReservationDto>(`/reservations/${id}/payment-status`, { paymentStatus }),
+  convertToContract: (
+    id: string,
+    body: {
+      kmStart: number;
+      depositAmount?: number;
+      depositMethod?: 'CASH' | 'CHECK' | 'CARD' | 'CARD_IMPRINT' | 'BANK_TRANSFER';
+      depositReference?: string;
+    },
+  ) => api.post<{ contractId: string }>(`/reservations/${id}/convert-to-contract`, body),
+  sweepOverdue: () =>
+    api.post<{ marked: number; notified: number }>('/reservations/overdue/sweep'),
 };
 
 // -------- Contracts --------
@@ -141,6 +157,8 @@ export const contractsApi = {
   complete: (id: string, body: { kmEnd: number; extraCharges?: number; actualReturnDate?: string; notes?: string }) =>
     api.post<RentalContractDto>(`/contracts/${id}/complete`, body),
   cancel: (id: string) => api.post<RentalContractDto>(`/contracts/${id}/cancel`),
+  /// PDF download path. Use with downloadFile() for the auth-aware blob.
+  pdfPath: (id: string) => `/contracts/${id}/pdf`,
 };
 
 // -------- Payments --------

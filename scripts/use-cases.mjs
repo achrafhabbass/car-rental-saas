@@ -939,6 +939,190 @@ async function platformUseCases() {
 }
 
 // ---------------------------------------------------------------
+// SEARCH (cross-cutting)
+// ---------------------------------------------------------------
+
+async function searchUseCases() {
+  section('SEARCH (debounced lists)');
+
+  await uc('SEA-01', 'reservations search by client.fullName', async () => {
+    const r = await call(
+      'GET',
+      `/reservations?search=${encodeURIComponent('alami')}`,
+      { token: ctx.tenantA.token },
+    );
+    expect(r, 200);
+    assert(Array.isArray(data(r).items), 'items expected');
+    assert(
+      data(r).items.some((x) => x.clientId === ctx.client.id),
+      'expected reservation to surface via client name search',
+    );
+  });
+
+  await uc('SEA-02', 'reservations search by vehicle.registration', async () => {
+    const reg = ctx.vehicle.registration;
+    const r = await call(
+      'GET',
+      `/reservations?search=${encodeURIComponent(reg)}`,
+      { token: ctx.tenantA.token },
+    );
+    expect(r, 200);
+    assert(
+      data(r).items.length >= 1,
+      `expected >= 1 reservation matching registration ${reg}`,
+    );
+  });
+
+  await uc('SEA-03', 'contracts search by client name', async () => {
+    const r = await call(
+      'GET',
+      `/contracts?search=${encodeURIComponent('alami')}`,
+      { token: ctx.tenantA.token },
+    );
+    expect(r, 200);
+    assert(data(r).items.length >= 1, 'expected >= 1 contract matching client name');
+  });
+
+  await uc('SEA-04', 'invoices search by client name', async () => {
+    const r = await call(
+      'GET',
+      `/invoices?search=${encodeURIComponent('alami')}`,
+      { token: ctx.tenantA.token },
+    );
+    expect(r, 200);
+    assert(data(r).items.length >= 1, 'expected >= 1 invoice matching client name');
+  });
+}
+
+// ---------------------------------------------------------------
+// ENHANCEMENTS (payment status, convert, overdue sweep, PDF)
+// ---------------------------------------------------------------
+
+async function enhancementsUseCases() {
+  section('ENHANCEMENTS');
+
+  // Fresh vehicle so we don't collide with the existing contract on ctx.vehicle.
+  const veh = await call('POST', '/vehicles', {
+    token: ctx.tenantA.token,
+    body: {
+      registration: `ENH-${rnd()}`,
+      brand: 'Hyundai',
+      model: 'i20',
+      year: 2024,
+      dailyRate: 200,
+    },
+  });
+  expect(veh, 201, 'enh vehicle: ');
+
+  const now = Date.now();
+  const start = new Date(now + 5 * 24 * 3600 * 1000).toISOString();
+  const end = new Date(now + 8 * 24 * 3600 * 1000).toISOString();
+  const res = await call('POST', '/reservations', {
+    token: ctx.tenantA.token,
+    body: {
+      vehicleId: data(veh).id,
+      clientId: ctx.client.id,
+      startDate: start,
+      endDate: end,
+      paymentStatus: 'PARTIAL',
+    },
+  });
+  expect(res, 201, 'enh reservation: ');
+  const enhRes = data(res);
+
+  await uc('ENH-01', 'create accepts paymentStatus and persists it', async () => {
+    assert(enhRes.paymentStatus === 'PARTIAL', `got ${enhRes.paymentStatus}`);
+  });
+
+  await uc('ENH-02', 'PATCH /reservations/:id/payment-status updates the field', async () => {
+    const r = await call('PATCH', `/reservations/${enhRes.id}/payment-status`, {
+      token: ctx.tenantA.token,
+      body: { paymentStatus: 'PAID' },
+    });
+    expect(r, 200);
+    assert(data(r).paymentStatus === 'PAID', `got ${data(r).paymentStatus}`);
+  });
+
+  await uc('ENH-03', 'POST /reservations/:id/convert-to-contract creates a contract', async () => {
+    const r = await call('POST', `/reservations/${enhRes.id}/convert-to-contract`, {
+      token: ctx.tenantA.token,
+      body: { kmStart: 12_345 },
+    });
+    expect(r, 201);
+    const contractId = data(r).contractId;
+    assert(typeof contractId === 'string', 'contractId expected');
+    ctx.enhContractId = contractId;
+
+    const fresh = await call('GET', `/reservations/${enhRes.id}`, {
+      token: ctx.tenantA.token,
+    });
+    expect(fresh, 200);
+    assert(
+      data(fresh).status === 'CONVERTED',
+      `reservation should be CONVERTED, is ${data(fresh).status}`,
+    );
+  });
+
+  await uc('ENH-04', 'second convert call on the same reservation rejected', async () => {
+    const r = await call('POST', `/reservations/${enhRes.id}/convert-to-contract`, {
+      token: ctx.tenantA.token,
+      body: { kmStart: 1 },
+    });
+    assert(r.status === 409, `expected 409, got ${r.status}`);
+  });
+
+  await uc('ENH-05', 'GET /contracts/:id/pdf returns a PDF', async () => {
+    const url = `${API}/contracts/${ctx.enhContractId}/pdf`;
+    const headers = { Authorization: `Bearer ${ctx.tenantA.token}` };
+    const r = await fetch(url, { headers });
+    assert(r.status === 200, `expected 200, got ${r.status}`);
+    const ct = r.headers.get('content-type') ?? '';
+    assert(/application\/pdf/.test(ct), `wrong content-type: ${ct}`);
+    const buf = Buffer.from(await r.arrayBuffer());
+    const head = buf.subarray(0, 4).toString('utf8');
+    assert(head === '%PDF', `expected %PDF magic, got "${head}"`);
+  });
+
+  await uc('ENH-06', 'overdue sweep marks past-end reservations as OVERDUE', async () => {
+    const past = await call('POST', '/vehicles', {
+      token: ctx.tenantA.token,
+      body: {
+        registration: `OVR-${rnd()}`,
+        brand: 'Suzuki',
+        model: 'Swift',
+        year: 2022,
+        dailyRate: 150,
+      },
+    });
+    expect(past, 201);
+    const oStart = new Date(Date.now() - 10 * 24 * 3600 * 1000).toISOString();
+    const oEnd = new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString();
+    const oRes = await call('POST', '/reservations', {
+      token: ctx.tenantA.token,
+      body: {
+        vehicleId: data(past).id,
+        clientId: ctx.client.id,
+        startDate: oStart,
+        endDate: oEnd,
+      },
+    });
+    expect(oRes, 201);
+
+    const sweep = await call('POST', '/reservations/overdue/sweep', {
+      token: ctx.tenantA.token,
+    });
+    expect(sweep, 200);
+    assert(data(sweep).marked >= 1, `expected >= 1 marked, got ${data(sweep).marked}`);
+
+    const fresh = await call('GET', `/reservations/${data(oRes).id}`, {
+      token: ctx.tenantA.token,
+    });
+    expect(fresh, 200);
+    assert(data(fresh).status === 'OVERDUE', `expected OVERDUE, got ${data(fresh).status}`);
+  });
+}
+
+// ---------------------------------------------------------------
 // MAIN
 // ---------------------------------------------------------------
 
@@ -963,6 +1147,8 @@ async function platformUseCases() {
     await alertNotificationUseCases();
     await analyticsUseCases();
     await platformUseCases();
+    await searchUseCases();
+    await enhancementsUseCases();
 
     const pass = results.filter((r) => r.status === 'PASS').length;
     const fail = results.filter((r) => r.status === 'FAIL').length;

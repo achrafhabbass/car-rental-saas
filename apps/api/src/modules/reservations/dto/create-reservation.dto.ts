@@ -9,7 +9,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { ReservationSource } from '@prisma/client';
+import { ReservationPaymentStatus, ReservationSource } from '@prisma/client';
 
 export class CreateReservationDto {
   @IsUUID()
@@ -43,6 +43,10 @@ export class CreateReservationDto {
   @IsOptional()
   @IsEnum(ReservationSource)
   source?: ReservationSource;
+
+  @IsOptional()
+  @IsEnum(ReservationPaymentStatus)
+  paymentStatus?: ReservationPaymentStatus;
 
   @IsOptional()
   @IsString()

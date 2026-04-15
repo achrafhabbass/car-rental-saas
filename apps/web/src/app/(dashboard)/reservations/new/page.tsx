@@ -47,6 +47,8 @@ export default function NewReservationPage() {
         returnLocation: String(fd.get('returnLocation') || '') || undefined,
         dailyRate: fd.get('dailyRate') ? Number(fd.get('dailyRate')) : undefined,
         source: (String(fd.get('source')) as 'DIRECT' | 'WEBSITE' | 'PHONE' | 'PARTNER' | 'WALK_IN') || undefined,
+        paymentStatus:
+          (String(fd.get('paymentStatus')) as 'PENDING' | 'PARTIAL' | 'PAID' | 'REFUNDED') || undefined,
         notes: String(fd.get('notes') || '') || undefined,
       });
       router.push('/reservations');
@@ -110,6 +112,14 @@ export default function NewReservationPage() {
                 <option value="PHONE">Téléphone</option>
                 <option value="PARTNER">Partenaire</option>
                 <option value="WALK_IN">Comptoir</option>
+              </Select>
+            </Field>
+            <Field label="Statut de paiement" htmlFor="paymentStatus">
+              <Select id="paymentStatus" name="paymentStatus" defaultValue="PENDING">
+                <option value="PENDING">En attente</option>
+                <option value="PARTIAL">Partiel</option>
+                <option value="PAID">Payé</option>
+                <option value="REFUNDED">Remboursé</option>
               </Select>
             </Field>
             <div className="md:col-span-2">

@@ -3,7 +3,15 @@ export type ReservationStatusName =
   | 'CONFIRMED'
   | 'CANCELLED'
   | 'CONVERTED'
-  | 'NO_SHOW';
+  | 'NO_SHOW'
+  | 'OVERDUE'
+  | 'COMPLETED';
+
+export type ReservationPaymentStatusName =
+  | 'PENDING'
+  | 'PARTIAL'
+  | 'PAID'
+  | 'REFUNDED';
 
 export type ReservationSourceName =
   | 'DIRECT'
@@ -25,12 +33,14 @@ export interface ReservationDto {
   dailyRate: string;
   totalAmount: string;
   status: ReservationStatusName;
+  paymentStatus: ReservationPaymentStatusName;
   source: ReservationSourceName;
   notes: string | null;
   createdAt: string;
   updatedAt: string;
   cancelledAt: string | null;
   convertedAt: string | null;
+  overdueSince: string | null;
 }
 
 export interface CreateReservationInput {
@@ -42,9 +52,17 @@ export interface CreateReservationInput {
   returnLocation?: string;
   dailyRate?: number;
   source?: ReservationSourceName;
+  paymentStatus?: ReservationPaymentStatusName;
   notes?: string;
 }
 
 export type UpdateReservationInput = Partial<CreateReservationInput> & {
   status?: ReservationStatusName;
 };
+
+export interface ConvertReservationToContractInput {
+  kmStart: number;
+  depositAmount?: number;
+  depositMethod?: 'CASH' | 'CHECK' | 'CARD' | 'CARD_IMPRINT' | 'BANK_TRANSFER';
+  depositReference?: string;
+}

@@ -26,4 +26,5 @@ export interface PaginationQuery {
   pageSize?: number;
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
+  search?: string;
 }

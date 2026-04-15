@@ -67,3 +67,15 @@ _Last full suite run: see `REPORT.json` at the repo root._
 - **No client edit UI** — same fix: added `/clients/[id]` with edit form,
   blacklist toggle, delete. List "name" column is now a link. New
   regression test `CLI-06` locks in `PATCH /clients/:id` persistence.
+
+### Phase 7 enhancements 2026-04-15
+
+- **Convert-to-contract failed with "vehicle has overlapping booking"** —
+  `ContractsService.create` called `vehiclesRepo.hasOverlap` without excluding
+  the source reservation, so the new contract conflicted with itself when
+  promoted from a reservation. Fixed by passing `dto.reservationId` as the
+  `excludeReservationId` argument. Locked in by `ENH-03`.
+- **`/contracts/:id/pdf` returned 400** — cascading from the failure above
+  (the test passed `undefined` as the contract id, which `ParseUUIDPipe`
+  rejected). Disappeared once `ENH-03` started passing. `ENH-05` now confirms
+  the endpoint returns `application/pdf` with the `%PDF` magic header.

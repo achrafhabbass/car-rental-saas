@@ -33,7 +33,13 @@ export class InvoicesService {
     if (dto.status) where.status = dto.status;
     if (dto.clientId) where.clientId = dto.clientId;
     if (dto.contractId) where.contractId = dto.contractId;
-    if (dto.search) where.invoiceNumber = { contains: dto.search, mode: 'insensitive' };
+    if (dto.search) {
+      const q = dto.search;
+      where.OR = [
+        { invoiceNumber: { contains: q, mode: 'insensitive' } },
+        { client: { fullName: { contains: q, mode: 'insensitive' } } },
+      ];
+    }
     const [items, total] = await this.repo.list(tenantId, where, skip, take, orderBy);
     return paginate(items, total, dto);
   }

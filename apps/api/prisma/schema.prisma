@@ -94,6 +94,15 @@ enum ReservationStatus {
   CANCELLED
   CONVERTED
   NO_SHOW
+  OVERDUE
+  COMPLETED
+}
+
+enum ReservationPaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  REFUNDED
 }
 
 enum ReservationSource {
@@ -414,14 +423,16 @@ model Reservation {
   returnLocation  String?            @db.VarChar(255)
   dailyRate       Decimal            @db.Decimal(10, 2)
   totalAmount     Decimal            @db.Decimal(12, 2)
-  status          ReservationStatus  @default(PENDING)
-  source          ReservationSource  @default(DIRECT)
-  notes           String?            @db.Text
+  status          ReservationStatus        @default(PENDING)
+  paymentStatus   ReservationPaymentStatus @default(PENDING)
+  source          ReservationSource        @default(DIRECT)
+  notes           String?                  @db.Text
   metadata        Json?
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
   cancelledAt     DateTime?
   convertedAt     DateTime?
+  overdueSince    DateTime?
 
   tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   vehicle Vehicle @relation(fields: [vehicleId], references: [id])

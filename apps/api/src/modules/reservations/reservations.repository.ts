@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { Prisma, Reservation } from '@prisma/client';
+import type { Prisma, RentalContract, Reservation } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -8,7 +8,32 @@ export class ReservationsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   findById(tenantId: string, id: string): Promise<Reservation | null> {
-    return this.prisma.reservation.findFirst({ where: { id, tenantId } });
+    return this.prisma.reservation.findFirst({
+      where: { id, tenantId },
+      include: { vehicle: true, client: true, contract: true },
+    });
+  }
+
+  findContractForReservation(
+    tenantId: string,
+    reservationId: string,
+  ): Promise<RentalContract | null> {
+    return this.prisma.rentalContract.findFirst({
+      where: { tenantId, reservationId },
+    });
+  }
+
+  /// Returns reservations that are past their endDate and still in a state
+  /// where the vehicle is expected back (CONFIRMED or PENDING). Used by the
+  /// daily overdue sweeper.
+  findOverdueCandidates(): Promise<Reservation[]> {
+    return this.prisma.reservation.findMany({
+      where: {
+        endDate: { lt: new Date() },
+        status: { in: ['PENDING', 'CONFIRMED'] },
+      },
+      include: { vehicle: true, client: true },
+    });
   }
 
   list(

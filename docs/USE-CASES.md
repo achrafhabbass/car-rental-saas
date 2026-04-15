@@ -118,6 +118,26 @@ living todo list.
 | PLT-01 | A tenant ADMIN is rejected from `/platform/metrics` | 403 |
 | PLT-02 | A tenant ADMIN is rejected from `/platform/tenants` | 403 |
 
+## SEARCH (cross-cutting) — 4 use cases
+
+| ID | Use case | Expected |
+|----|----------|----------|
+| SEA-01 | `GET /reservations?search=<client name>` matches via the related Client.fullName | result includes our reservation |
+| SEA-02 | `GET /reservations?search=<vehicle reg>` matches via Vehicle.registration | result includes our reservation |
+| SEA-03 | `GET /contracts?search=<client name>` matches via Client.fullName | result includes our contract |
+| SEA-04 | `GET /invoices?search=<client name>` matches via Client.fullName | result includes our invoice |
+
+## ENHANCEMENTS (Phase 7) — 6 use cases
+
+| ID | Use case | Expected |
+|----|----------|----------|
+| ENH-01 | `POST /reservations` accepts `paymentStatus` and persists it | created reservation has `paymentStatus = PARTIAL` |
+| ENH-02 | `PATCH /reservations/:id/payment-status` mutates the field | response shows `paymentStatus = PAID` |
+| ENH-03 | `POST /reservations/:id/convert-to-contract` creates a contract and flips the reservation to CONVERTED | 201 with `contractId`, reservation status = CONVERTED |
+| ENH-04 | A second convert call is rejected (one reservation → at most one contract) | 409 |
+| ENH-05 | `GET /contracts/:id/pdf` returns `application/pdf` body starting with `%PDF` | content-type ok + magic header |
+| ENH-06 | `POST /reservations/overdue/sweep` flips past-end PENDING/CONFIRMED reservations to OVERDUE and notifies | reservation appears with status OVERDUE |
+
 Positive super-admin paths (list, suspend, activate, extend trial) are
 validated manually after running the `promote-superadmin` script — see
 [Phase 5 notes in the commit log](https://github.com/achrafhabbass/car-rental-saas/commits/claude/youthful-bell).

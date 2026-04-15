@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
+import { SearchInput } from '@/components/ui/search-input';
 import { Badge, Table, Tbody, Td, Th, Thead, Tr } from '@/components/ui/table';
 import { ApiError } from '@/lib/api';
 import { vehiclesApi } from '@/lib/resources';
@@ -23,18 +24,30 @@ export default function VehiclesPage() {
   const [items, setItems] = useState<VehicleDto[] | null>(null);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [searching, setSearching] = useState(false);
+
+  const load = useCallback(
+    (q: string) => {
+      setSearching(true);
+      vehiclesApi
+        .list({ pageSize: 50, sortBy: 'createdAt', sortDir: 'desc', search: q || undefined })
+        .then((r) => {
+          setItems(r.items);
+          setTotal(r.total);
+          setError(null);
+        })
+        .catch((err: unknown) =>
+          setError(err instanceof ApiError ? err.message : 'Chargement échoué'),
+        )
+        .finally(() => setSearching(false));
+    },
+    [],
+  );
 
   useEffect(() => {
-    vehiclesApi
-      .list({ pageSize: 50, sortBy: 'createdAt', sortDir: 'desc' })
-      .then((r) => {
-        setItems(r.items);
-        setTotal(r.total);
-      })
-      .catch((err: unknown) =>
-        setError(err instanceof ApiError ? err.message : 'Chargement échoué'),
-      );
-  }, []);
+    load(search);
+  }, [load, search]);
 
   return (
     <div className="space-y-6 max-w-container">
@@ -50,6 +63,14 @@ export default function VehiclesPage() {
           </Link>
         }
       />
+
+      <div className="flex justify-end">
+        <SearchInput
+          onSearch={setSearch}
+          loading={searching}
+          placeholder="Immatriculation, marque, modèle…"
+        />
+      </div>
 
       <Card>
         {error && (
@@ -78,7 +99,7 @@ export default function VehiclesPage() {
             ) : items.length === 0 ? (
               <Tr>
                 <Td colSpan={6} className="text-center text-slate-400 py-8">
-                  Aucun véhicule. Cliquez sur « Nouveau véhicule » pour commencer.
+                  {search ? `Aucun véhicule pour « ${search} ».` : 'Aucun véhicule.'}
                 </Td>
               </Tr>
             ) : (

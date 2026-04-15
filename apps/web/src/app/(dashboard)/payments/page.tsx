@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
+import { SearchInput } from '@/components/ui/search-input';
 import { Badge, Table, Tbody, Td, Th, Thead, Tr } from '@/components/ui/table';
 import { ApiError } from '@/lib/api';
 import { paymentsApi } from '@/lib/resources';
@@ -33,18 +34,27 @@ export default function PaymentsPage() {
   const [items, setItems] = useState<PaymentDto[] | null>(null);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [searching, setSearching] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback((q: string) => {
+    setSearching(true);
     paymentsApi
-      .list({ pageSize: 50, sortBy: 'paidAt', sortDir: 'desc' })
+      .list({ pageSize: 50, sortBy: 'paidAt', sortDir: 'desc', search: q || undefined })
       .then((r) => {
         setItems(r.items);
         setTotal(r.total);
+        setError(null);
       })
       .catch((err: unknown) =>
         setError(err instanceof ApiError ? err.message : 'Chargement échoué'),
-      );
+      )
+      .finally(() => setSearching(false));
   }, []);
+
+  useEffect(() => {
+    load(search);
+  }, [load, search]);
 
   return (
     <div className="space-y-6 max-w-container">
@@ -60,6 +70,14 @@ export default function PaymentsPage() {
           </Link>
         }
       />
+
+      <div className="flex justify-end">
+        <SearchInput
+          onSearch={setSearch}
+          loading={searching}
+          placeholder="Code, référence…"
+        />
+      </div>
 
       <Card>
         {error && (

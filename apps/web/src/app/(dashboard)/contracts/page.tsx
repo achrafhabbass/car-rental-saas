@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
+import { SearchInput } from '@/components/ui/search-input';
 import { Badge, Table, Tbody, Td, Th, Thead, Tr } from '@/components/ui/table';
 import { ApiError } from '@/lib/api';
 import { contractsApi } from '@/lib/resources';
@@ -31,18 +32,27 @@ export default function ContractsPage() {
   const [items, setItems] = useState<RentalContractDto[] | null>(null);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [searching, setSearching] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback((q: string) => {
+    setSearching(true);
     contractsApi
-      .list({ pageSize: 50, sortBy: 'createdAt', sortDir: 'desc' })
+      .list({ pageSize: 50, sortBy: 'createdAt', sortDir: 'desc', search: q || undefined })
       .then((r) => {
         setItems(r.items);
         setTotal(r.total);
+        setError(null);
       })
       .catch((err: unknown) =>
         setError(err instanceof ApiError ? err.message : 'Chargement échoué'),
-      );
+      )
+      .finally(() => setSearching(false));
   }, []);
+
+  useEffect(() => {
+    load(search);
+  }, [load, search]);
 
   return (
     <div className="space-y-6 max-w-container">
@@ -58,6 +68,14 @@ export default function ContractsPage() {
           </Link>
         }
       />
+
+      <div className="flex justify-end">
+        <SearchInput
+          onSearch={setSearch}
+          loading={searching}
+          placeholder="N° contrat, client, immatriculation…"
+        />
+      </div>
 
       <Card>
         {error && (
@@ -84,13 +102,20 @@ export default function ContractsPage() {
             ) : items.length === 0 ? (
               <Tr>
                 <Td colSpan={6} className="text-center text-slate-400 py-8">
-                  Aucun contrat.
+                  {search ? `Aucun contrat pour « ${search} ».` : 'Aucun contrat.'}
                 </Td>
               </Tr>
             ) : (
               items.map((c) => (
                 <Tr key={c.id}>
-                  <Td className="font-medium text-slate-900">{c.contractNumber}</Td>
+                  <Td>
+                    <Link
+                      href={`/contracts/${c.id}`}
+                      className="font-medium text-slate-900 hover:text-primary-500"
+                    >
+                      {c.contractNumber}
+                    </Link>
+                  </Td>
                   <Td>
                     {formatDate(c.startDate)} → {formatDate(c.endDate)}
                   </Td>

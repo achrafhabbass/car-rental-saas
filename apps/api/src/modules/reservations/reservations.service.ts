@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { Prisma, Reservation } from '@prisma/client';
+import type { Prisma, Reservation, ReservationPaymentStatus } from '@prisma/client';
 
 import {
   PaginatedResult,
@@ -13,6 +13,7 @@ import {
 } from '../../common/dto/pagination.dto';
 import { AlertsService } from '../alerts/alerts.service';
 import { ClientsService } from '../clients/clients.service';
+import { ContractsService } from '../contracts/contracts.service';
 import { VehiclesRepository } from '../vehicles/vehicles.repository';
 import { VehiclesService } from '../vehicles/vehicles.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
@@ -28,6 +29,7 @@ export class ReservationsService {
     private readonly vehiclesRepo: VehiclesRepository,
     private readonly clients: ClientsService,
     private readonly alerts: AlertsService,
+    private readonly contractsService: ContractsService,
   ) {}
 
   async list(
@@ -44,7 +46,12 @@ export class ReservationsService {
       where.startDate = { ...(where.startDate as object), lte: new Date(dto.toDate) };
     }
     if (dto.search) {
-      where.reservationCode = { contains: dto.search, mode: 'insensitive' };
+      const q = dto.search;
+      where.OR = [
+        { reservationCode: { contains: q, mode: 'insensitive' } },
+        { client: { fullName: { contains: q, mode: 'insensitive' } } },
+        { vehicle: { registration: { contains: q, mode: 'insensitive' } } },
+      ];
     }
     const [items, total] = await this.repo.list(tenantId, where, skip, take, orderBy);
     return paginate(items, total, dto);
@@ -102,8 +109,70 @@ export class ReservationsService {
       dailyRate,
       totalAmount,
       source: dto.source ?? 'DIRECT',
+      paymentStatus: dto.paymentStatus ?? 'PENDING',
       notes: dto.notes,
     });
+  }
+
+  async updatePaymentStatus(
+    tenantId: string,
+    id: string,
+    paymentStatus: ReservationPaymentStatus,
+  ): Promise<Reservation> {
+    await this.get(tenantId, id);
+    await this.repo.update(tenantId, id, { paymentStatus });
+    return this.get(tenantId, id);
+  }
+
+  /// Converts a non-cancelled / non-converted reservation into a fresh
+  /// rental contract. The DB-level @unique on rental_contracts.reservationId
+  /// guarantees one-to-one — service-layer check below provides a friendlier
+  /// 409 with a clear message.
+  async convertToContract(
+    tenantId: string,
+    id: string,
+    userId: string | null,
+    overrides: { kmStart: number; depositAmount?: number; depositMethod?: string } & {
+      depositReference?: string;
+    },
+  ): Promise<{ contractId: string }> {
+    const reservation = await this.get(tenantId, id);
+    if (reservation.status === 'CANCELLED') {
+      throw new ConflictException('Cannot convert a cancelled reservation');
+    }
+    if (reservation.status === 'CONVERTED') {
+      throw new ConflictException('Reservation is already converted');
+    }
+    const existingContract = await this.repo.findContractForReservation(tenantId, id);
+    if (existingContract) {
+      throw new ConflictException(
+        `Reservation already produced contract ${existingContract.contractNumber}`,
+      );
+    }
+
+    const contract = await this.contractsService.create(tenantId, userId, {
+      vehicleId: reservation.vehicleId,
+      clientId: reservation.clientId,
+      reservationId: reservation.id,
+      startDate: reservation.startDate.toISOString(),
+      endDate: reservation.endDate.toISOString(),
+      kmStart: overrides.kmStart,
+      dailyRate: Number(reservation.dailyRate),
+      depositAmount: overrides.depositAmount,
+      depositMethod: overrides.depositMethod as
+        | 'CASH'
+        | 'CHECK'
+        | 'CARD'
+        | 'CARD_IMPRINT'
+        | 'BANK_TRANSFER'
+        | undefined,
+      depositReference: overrides.depositReference,
+      pickupLocation: reservation.pickupLocation ?? undefined,
+      returnLocation: reservation.returnLocation ?? undefined,
+      notes: reservation.notes ?? undefined,
+    });
+
+    return { contractId: contract.id };
   }
 
   async update(
