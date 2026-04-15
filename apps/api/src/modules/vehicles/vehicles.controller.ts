@@ -14,6 +14,7 @@ import {
 
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { CalendarQueryDto } from './dto/calendar.dto';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 import { ListVehiclesDto } from './dto/list-vehicles.dto';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto';
@@ -26,6 +27,14 @@ export class VehiclesController {
   @Get()
   list(@CurrentTenant() tenantId: string, @Query() query: ListVehiclesDto) {
     return this.vehicles.list(tenantId, query);
+  }
+
+  @Get('calendar')
+  calendar(@CurrentTenant() tenantId: string, @Query() query: CalendarQueryDto) {
+    return this.vehicles.getCalendar(tenantId, query.from, query.to, {
+      vehicleId: query.vehicleId,
+      status: query.status,
+    });
   }
 
   @Get(':id')

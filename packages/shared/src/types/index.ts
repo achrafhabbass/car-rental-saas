@@ -14,3 +14,6 @@ export * from './alert';
 export * from './notification';
 export * from './analytics';
 export * from './platform';
+export * from './inspection';
+export * from './deposit';
+export * from './calendar';

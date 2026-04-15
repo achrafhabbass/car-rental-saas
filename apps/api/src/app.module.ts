@@ -15,7 +15,10 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ClientsModule } from './modules/clients/clients.module';
 import { ContractsModule } from './modules/contracts/contracts.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { DepositsModule } from './modules/deposits/deposits.module';
 import { HealthModule } from './modules/health/health.module';
+import { InspectionsModule } from './modules/inspections/inspections.module';
 import { InvoicesModule } from './modules/invoices/invoices.module';
 import { MaintenanceModule } from './modules/maintenance/maintenance.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
@@ -76,6 +79,9 @@ import { PrismaModule } from './prisma/prisma.module';
     MaintenanceModule,
     AnalyticsModule,
     PlatformModule,
+    InspectionsModule,
+    DepositsModule,
+    DashboardModule,
   ],
   providers: [
     TenantMiddleware,

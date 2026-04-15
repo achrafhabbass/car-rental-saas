@@ -85,12 +85,15 @@ export class ReservationsController {
     return this.reservations.convertToContract(tenantId, id, user.sub, dto);
   }
 
-  /// Manual trigger for the daily overdue sweep — useful for testing
-  /// or after a clock skew. Cron runs automatically every day at 03:00.
+  /// Manual trigger for the daily overdue sweep — useful for testing or
+  /// after a clock skew. Cron runs automatically every day at 03:00 and
+  /// processes BOTH reservations and contracts.
   @Roles('ADMIN', 'MANAGER')
   @Post('overdue/sweep')
   @HttpCode(HttpStatus.OK)
-  sweepOverdue() {
-    return this.overdueSweeper.sweep();
+  async sweepOverdue() {
+    const reservations = await this.overdueSweeper.sweep();
+    const contracts = await this.overdueSweeper.sweepContracts();
+    return { reservations, contracts };
   }
 }

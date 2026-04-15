@@ -10,6 +10,7 @@ import {
   buildPagination,
   paginate,
 } from '../../common/dto/pagination.dto';
+import { PrismaService } from '../../prisma/prisma.service';
 import { AlertsService } from '../alerts/alerts.service';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 import { ListVehiclesDto } from './dto/list-vehicles.dto';
@@ -21,6 +22,7 @@ export class VehiclesService {
   constructor(
     private readonly repo: VehiclesRepository,
     private readonly alerts: AlertsService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async list(tenantId: string, dto: ListVehiclesDto): Promise<PaginatedResult<Vehicle>> {
@@ -119,5 +121,105 @@ export class VehiclesService {
   async delete(tenantId: string, id: string): Promise<void> {
     await this.get(tenantId, id);
     await this.repo.softDelete(tenantId, id);
+  }
+
+  /// Returns one row per vehicle with the busy windows (reservations +
+  /// contracts) overlapping the requested date range. Used by the
+  /// availability calendar UI.
+  async getCalendar(
+    tenantId: string,
+    fromIso: string,
+    toIso: string,
+    filter: { vehicleId?: string; status?: 'AVAILABLE' | 'RENTED' | 'MAINTENANCE' | 'INACTIVE' } = {},
+  ): Promise<
+    Array<{
+      vehicle: { id: string; registration: string; brand: string; model: string; status: string };
+      busy: Array<{
+        kind: 'RESERVATION' | 'CONTRACT';
+        id: string;
+        startDate: string;
+        endDate: string;
+        status: string;
+        clientName: string;
+      }>;
+    }>
+  > {
+    const from = new Date(fromIso);
+    const to = new Date(toIso);
+    if (!(to > from)) {
+      throw new Error('to must be after from');
+    }
+
+    // Fetch in parallel; Prisma applies tenantId via every where below.
+    const [vehicles, reservations, contracts] = await Promise.all([
+      this.prisma.vehicle.findMany({
+        where: {
+          tenantId,
+          deletedAt: null,
+          id: filter.vehicleId,
+          status: filter.status,
+        },
+        select: { id: true, registration: true, brand: true, model: true, status: true },
+        orderBy: { registration: 'asc' },
+      }),
+      this.prisma.reservation.findMany({
+        where: {
+          tenantId,
+          status: { in: ['PENDING', 'CONFIRMED'] },
+          AND: [{ startDate: { lt: to } }, { endDate: { gt: from } }],
+          ...(filter.vehicleId ? { vehicleId: filter.vehicleId } : {}),
+        },
+        select: {
+          id: true,
+          vehicleId: true,
+          startDate: true,
+          endDate: true,
+          status: true,
+          client: { select: { fullName: true } },
+        },
+      }),
+      this.prisma.rentalContract.findMany({
+        where: {
+          tenantId,
+          status: { in: ['ACTIVE', 'OVERDUE', 'RETURNED'] },
+          AND: [{ startDate: { lt: to } }, { endDate: { gt: from } }],
+          ...(filter.vehicleId ? { vehicleId: filter.vehicleId } : {}),
+        },
+        select: {
+          id: true,
+          vehicleId: true,
+          startDate: true,
+          endDate: true,
+          status: true,
+          client: { select: { fullName: true } },
+        },
+      }),
+    ]);
+
+    return vehicles.map((v) => ({
+      vehicle: v,
+      busy: [
+        ...reservations
+          .filter((r) => r.vehicleId === v.id)
+          .map((r) => ({
+            kind: 'RESERVATION' as const,
+            id: r.id,
+            startDate: r.startDate.toISOString(),
+            endDate: r.endDate.toISOString(),
+            status: r.status,
+            clientName: r.client?.fullName ?? '—',
+          })),
+        ...contracts
+          .filter((c) => c.vehicleId === v.id)
+          .map((c) => ({
+            kind: 'CONTRACT' as const,
+            id: c.id,
+            startDate: c.startDate.toISOString(),
+            endDate: c.endDate.toISOString(),
+            status: c.status,
+            clientName: c.client?.fullName ?? '—',
+          })),
+      ].sort((a, b) => (a.startDate < b.startDate ? -1 : 1)),
+    }));
   }
 }

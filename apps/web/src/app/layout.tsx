@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 
 import { AuthProvider } from '@/lib/auth-context';
+import { BadgesProvider } from '@/lib/badges-context';
+import { ToastProvider } from '@/lib/toast-context';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -14,7 +16,11 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <BadgesProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </BadgesProvider>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -30,6 +30,46 @@ export class OverdueReservationsSweeper {
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async runDaily(): Promise<void> {
     await this.sweep();
+    await this.sweepContracts();
+  }
+
+  /// Same idea as sweep() but for ACTIVE contracts whose endDate has passed
+  /// without an actualReturnDate. Flips them to OVERDUE and notifies admins.
+  async sweepContracts(): Promise<{ marked: number; notified: number }> {
+    const candidates = await this.prisma.rentalContract.findMany({
+      where: {
+        status: 'ACTIVE',
+        endDate: { lt: new Date() },
+        actualReturnDate: null,
+      },
+      include: {
+        vehicle: { select: { registration: true } },
+        client: { select: { fullName: true } },
+      },
+    });
+    if (candidates.length === 0) {
+      this.logger.debug('No overdue contracts to mark');
+      return { marked: 0, notified: 0 };
+    }
+    let marked = 0;
+    let notified = 0;
+    for (const c of candidates) {
+      const u = await this.prisma.rentalContract.updateMany({
+        where: { id: c.id, status: 'ACTIVE' },
+        data: { status: 'OVERDUE' },
+      });
+      if (u.count === 0) continue;
+      marked += u.count;
+      await this.notifications.broadcastToAdmins({
+        tenantId: c.tenantId,
+        title: `Contrat en retard · ${c.vehicle.registration}`,
+        body: `Contrat ${c.contractNumber} (client ${c.client.fullName}) en retard depuis le ${c.endDate.toISOString().slice(0, 10)}. Veuillez contacter le client.`,
+        link: `/contracts/${c.id}`,
+      });
+      notified += 1;
+    }
+    this.logger.log(`Overdue contract sweep: ${marked} marked, ${notified} notifications`);
+    return { marked, notified };
   }
 
   async sweep(): Promise<{ marked: number; notified: number }> {

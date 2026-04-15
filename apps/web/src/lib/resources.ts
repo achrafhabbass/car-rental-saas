@@ -2,6 +2,14 @@ import type {
   AlertDto,
   AlertSummaryDto,
   AuthProfileDto,
+  CalendarRow,
+  CollectDepositInput,
+  CreateInspectionInput,
+  DashboardBadgesDto,
+  DepositDto,
+  SettleDepositInput,
+  UpdateInspectionInput,
+  VehicleInspectionDto,
   ClientPerformanceDto,
   DashboardKpisDto,
   PlatformMetricsDto,
@@ -316,5 +324,60 @@ export const platformApi = {
     api.post<TenantDto>(`/platform/tenants/${id}/extend-trial`, { days }),
   sweepExpiries: () =>
     api.post<{ expired: number }>('/platform/sweep-expiries'),
+};
+
+// -------- Dashboard badges --------
+
+export const dashboardApi = {
+  badges: () => api.get<DashboardBadgesDto>('/dashboard/badges'),
+};
+
+// -------- Vehicle availability calendar --------
+
+export interface CalendarQuery {
+  from: string;
+  to: string;
+  vehicleId?: string;
+  status?: string;
+}
+
+export const calendarApi = {
+  list: (q: CalendarQuery) => api.get<CalendarRow[]>(`/vehicles/calendar${qs(q)}`),
+};
+
+// -------- Inspections --------
+
+export interface ListInspectionsQuery extends PaginationQuery {
+  contractId?: string;
+  vehicleId?: string;
+  type?: string;
+}
+
+export const inspectionsApi = {
+  list: (q?: ListInspectionsQuery) =>
+    api.get<PaginatedResult<VehicleInspectionDto>>(`/inspections${qs(q)}`),
+  get: (id: string) => api.get<VehicleInspectionDto>(`/inspections/${id}`),
+  forContract: (contractId: string) =>
+    api.get<VehicleInspectionDto[]>(`/inspections/contracts/${contractId}/all`),
+  create: (body: CreateInspectionInput) =>
+    api.post<VehicleInspectionDto>('/inspections', body),
+  update: (id: string, body: UpdateInspectionInput) =>
+    api.patch<VehicleInspectionDto>(`/inspections/${id}`, body),
+};
+
+// -------- Deposits --------
+
+export const depositsApi = {
+  list: (contractId?: string) =>
+    api.get<DepositDto[]>(`/deposits${qs(contractId ? { contractId } : undefined)}`),
+  get: (id: string) => api.get<DepositDto>(`/deposits/${id}`),
+  forContract: (contractId: string) =>
+    api.get<DepositDto | null>(`/deposits/contracts/${contractId}`),
+  collect: (body: CollectDepositInput) => api.post<DepositDto>('/deposits', body),
+  refundFull: (id: string) => api.post<DepositDto>(`/deposits/${id}/refund-full`),
+  refundPartial: (id: string, body: SettleDepositInput) =>
+    api.post<DepositDto>(`/deposits/${id}/refund-partial`, body),
+  consume: (id: string, body: SettleDepositInput) =>
+    api.post<DepositDto>(`/deposits/${id}/consume`, body),
 };
 

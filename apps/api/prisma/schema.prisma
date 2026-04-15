@@ -116,8 +116,42 @@ enum ReservationSource {
 enum ContractStatus {
   DRAFT
   ACTIVE
+  RETURNED
   COMPLETED
   CANCELLED
+  OVERDUE
+}
+
+enum InspectionType {
+  DEPARTURE
+  RETURN
+}
+
+enum InspectionStatus {
+  DRAFT
+  COMPLETED
+}
+
+enum FuelLevel {
+  EMPTY
+  QUARTER
+  HALF
+  THREE_QUARTERS
+  FULL
+}
+
+enum VehicleConditionRating {
+  EXCELLENT
+  GOOD
+  FAIR
+  POOR
+}
+
+enum DepositStatus {
+  HELD
+  REFUNDED
+  PARTIAL_REFUND
+  CONSUMED
 }
 
 enum DepositMethod {
@@ -261,6 +295,8 @@ model Tenant {
   maintenanceSchedules MaintenanceSchedule[]
   alerts               Alert[]
   notifications        Notification[]
+  inspections          VehicleInspection[]
+  deposits             Deposit[]
 
   @@index([status])
   @@index([plan])
@@ -360,6 +396,7 @@ model Vehicle {
   maintenanceRecords  MaintenanceRecord[]
   maintenanceSchedules MaintenanceSchedule[]
   alerts              Alert[]
+  inspections         VehicleInspection[]
 
   @@unique([tenantId, registration])
   @@index([tenantId])
@@ -402,6 +439,7 @@ model Client {
   contracts    RentalContract[]
   payments     Payment[]
   invoices     Invoice[]
+  deposits     Deposit[]
 
   @@unique([tenantId, idNumber])
   @@index([tenantId])
@@ -488,6 +526,8 @@ model RentalContract {
   createdBy   User?        @relation("CreatedByUser", fields: [createdByUserId], references: [id])
   payments    Payment[]
   invoices    Invoice[]
+  inspections VehicleInspection[]
+  deposit     Deposit?
 
   @@unique([tenantId, contractNumber])
   @@index([tenantId])
@@ -753,4 +793,76 @@ model Notification {
   @@index([tenantId, userId, status])
   @@index([createdAt])
   @@map("notifications")
+}
+
+// ============================================
+// BUSINESS MODELS - Phase 8 (Inspection & Deposit)
+// ============================================
+
+/// VehicleInspection: state-of-vehicle snapshot at the start (DEPARTURE)
+/// or at the end (RETURN) of a rental contract.
+/// Compound unique on (contractId, type) ensures at most one of each per contract.
+model VehicleInspection {
+  id            String                  @id @default(uuid()) @db.Uuid
+  tenantId      String                  @db.Uuid
+  vehicleId     String                  @db.Uuid
+  contractId    String                  @db.Uuid
+  type          InspectionType
+  status        InspectionStatus        @default(COMPLETED)
+  performedAt   DateTime                @default(now())
+  km            Int
+  fuelLevel     FuelLevel               @default(FULL)
+  condition     VehicleConditionRating  @default(GOOD)
+  damages       String?                 @db.Text
+  photos        String[]                @default([])
+  agentName     String?                 @db.VarChar(255)
+  signatureUrl  String?                 @db.VarChar(512)
+  notes         String?                 @db.Text
+  metadata      Json?
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+
+  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vehicle  Vehicle        @relation(fields: [vehicleId], references: [id])
+  contract RentalContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@unique([contractId, type])
+  @@index([tenantId])
+  @@index([tenantId, vehicleId])
+  @@index([performedAt])
+  @@map("vehicle_inspections")
+}
+
+/// Deposit (caution): security deposit collected on a rental contract.
+/// Lifecycle: HELD → REFUNDED | PARTIAL_REFUND | CONSUMED.
+/// One-to-one with RentalContract.
+model Deposit {
+  id              String        @id @default(uuid()) @db.Uuid
+  tenantId        String        @db.Uuid
+  depositNumber   String        @db.VarChar(32)
+  contractId      String        @unique @db.Uuid
+  clientId        String        @db.Uuid
+  amount          Decimal       @db.Decimal(12, 2)
+  method          DepositMethod
+  reference       String?       @db.VarChar(128)
+  refundedAmount  Decimal       @default(0) @db.Decimal(12, 2)
+  consumedAmount  Decimal       @default(0) @db.Decimal(12, 2)
+  status          DepositStatus @default(HELD)
+  collectedAt     DateTime      @default(now())
+  settledAt       DateTime?
+  settledByUserId String?       @db.Uuid
+  notes           String?       @db.Text
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contract RentalContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  client   Client         @relation(fields: [clientId], references: [id])
+
+  @@unique([tenantId, depositNumber])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([clientId])
+  @@map("deposits")
 }

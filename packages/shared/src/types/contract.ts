@@ -1,4 +1,10 @@
-export type ContractStatusName = 'DRAFT' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+export type ContractStatusName =
+  | 'DRAFT'
+  | 'ACTIVE'
+  | 'RETURNED'
+  | 'COMPLETED'
+  | 'CANCELLED'
+  | 'OVERDUE';
 export type DepositMethodName =
   | 'CASH'
   | 'CHECK'
