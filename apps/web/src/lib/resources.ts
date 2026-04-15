@@ -81,6 +81,10 @@ export const authApi = {
     ),
   logout: () => api.post<void>('/auth/logout'),
   me: () => api.get<AuthProfileDto>('/auth/me'),
+  updateMe: (body: { firstName?: string; lastName?: string }) =>
+    api.patch<AuthProfileDto>('/auth/me', body),
+  changePassword: (body: { currentPassword: string; newPassword: string }) =>
+    api.post<void>('/auth/change-password', body),
 };
 
 // -------- Vehicles --------

@@ -38,6 +38,14 @@ export type UserRoleName =
   | 'EMPLOYEE'
   | 'ACCOUNTANT';
 
+export interface AuthProfileTenantDto {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  plan: string | null;
+}
+
 export interface AuthProfileDto {
   id: string;
   tenantId: string | null;
@@ -50,4 +58,15 @@ export interface AuthProfileDto {
   emailVerifiedAt: string | null;
   lastLoginAt: string | null;
   createdAt: string;
+  tenant: AuthProfileTenantDto | null;
+}
+
+export interface UpdateProfileInput {
+  firstName?: string;
+  lastName?: string;
+}
+
+export interface ChangePasswordInput {
+  currentPassword: string;
+  newPassword: string;
 }

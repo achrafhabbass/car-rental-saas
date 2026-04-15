@@ -1,4 +1,12 @@
-import type { User, UserRole, UserStatus } from '@prisma/client';
+import type { Tenant, User, UserRole, UserStatus } from '@prisma/client';
+
+export interface AuthProfileTenantDto {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  plan: string | null;
+}
 
 export interface AuthProfileDto {
   id: string;
@@ -12,9 +20,13 @@ export interface AuthProfileDto {
   emailVerifiedAt: string | null;
   lastLoginAt: string | null;
   createdAt: string;
+  tenant: AuthProfileTenantDto | null;
 }
 
-export function toAuthProfile(user: User): AuthProfileDto {
+export function toAuthProfile(
+  user: User,
+  tenant: Tenant | null = null,
+): AuthProfileDto {
   return {
     id: user.id,
     tenantId: user.tenantId,
@@ -27,5 +39,14 @@ export function toAuthProfile(user: User): AuthProfileDto {
     emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
     lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
     createdAt: user.createdAt.toISOString(),
+    tenant: tenant
+      ? {
+          id: tenant.id,
+          name: tenant.name,
+          slug: tenant.slug,
+          status: tenant.status,
+          plan: tenant.plan ?? null,
+        }
+      : null,
   };
 }

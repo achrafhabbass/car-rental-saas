@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
+import { PartiesCard } from '@/components/business/parties-card';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -21,12 +22,20 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Badge } from '@/components/ui/table';
 import { ApiError, downloadFile } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
-import { contractsApi, depositsApi, inspectionsApi } from '@/lib/resources';
+import {
+  clientsApi,
+  contractsApi,
+  depositsApi,
+  inspectionsApi,
+  vehiclesApi,
+} from '@/lib/resources';
 import { useToast } from '@/lib/toast-context';
 import type {
+  ClientDto,
   ContractStatusName,
   DepositDto,
   RentalContractDto,
+  VehicleDto,
   VehicleInspectionDto,
 } from '@autosphere/shared';
 
@@ -68,6 +77,8 @@ export default function ContractDetailPage() {
   const canSettleDeposit = hasRole('ADMIN', 'MANAGER', 'ACCOUNTANT');
 
   const [c, setC] = useState<RentalContractDto | null>(null);
+  const [client, setClient] = useState<ClientDto | null>(null);
+  const [vehicle, setVehicle] = useState<VehicleDto | null>(null);
   const [deposit, setDeposit] = useState<DepositDto | null>(null);
   const [inspections, setInspections] = useState<VehicleInspectionDto[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -93,6 +104,8 @@ export default function ContractDetailPage() {
         setKmEnd(res.kmStart);
         setDeposit(dep);
         setInspections(insp ?? []);
+        void clientsApi.get(res.clientId).then(setClient).catch(() => setClient(null));
+        void vehiclesApi.get(res.vehicleId).then(setVehicle).catch(() => setVehicle(null));
       })
       .catch((err: unknown) =>
         setError(err instanceof ApiError ? err.message : 'Chargement échoué'),
@@ -252,6 +265,8 @@ export default function ContractDetailPage() {
           {error}
         </div>
       )}
+
+      <PartiesCard client={client} vehicle={vehicle} />
 
       <Card>
         <CardHeader>

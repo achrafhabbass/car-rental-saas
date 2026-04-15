@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
+import { PartiesCard } from '@/components/business/parties-card';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field, Input, Select } from '@/components/ui/input';
@@ -12,11 +13,13 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Badge } from '@/components/ui/table';
 import { ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
-import { reservationsApi } from '@/lib/resources';
+import { clientsApi, reservationsApi, vehiclesApi } from '@/lib/resources';
 import type {
+  ClientDto,
   ReservationDto,
   ReservationPaymentStatusName,
   ReservationStatusName,
+  VehicleDto,
 } from '@autosphere/shared';
 
 const STATUS_TONE: Record<ReservationStatusName, 'green' | 'blue' | 'amber' | 'red' | 'slate'> = {
@@ -55,6 +58,8 @@ export default function ReservationDetailPage() {
   const canCancel = hasRole('ADMIN', 'MANAGER');
 
   const [r, setR] = useState<ReservationDto | null>(null);
+  const [client, setClient] = useState<ClientDto | null>(null);
+  const [vehicle, setVehicle] = useState<VehicleDto | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<ReservationPaymentStatusName>('PENDING');
@@ -70,6 +75,8 @@ export default function ReservationDetailPage() {
       .then((res) => {
         setR(res);
         setPaymentStatus(res.paymentStatus);
+        void clientsApi.get(res.clientId).then(setClient).catch(() => setClient(null));
+        void vehiclesApi.get(res.vehicleId).then(setVehicle).catch(() => setVehicle(null));
       })
       .catch((err: unknown) =>
         setError(err instanceof ApiError ? err.message : 'Chargement échoué'),
@@ -171,6 +178,8 @@ export default function ReservationDetailPage() {
           {error}
         </div>
       )}
+
+      <PartiesCard client={client} vehicle={vehicle} />
 
       <Card>
         <CardHeader>
