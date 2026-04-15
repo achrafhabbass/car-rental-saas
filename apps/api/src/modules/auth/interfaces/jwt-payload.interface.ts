@@ -6,6 +6,8 @@ export interface JwtPayload {
   email: string;
   tenantId: string | null;
   role: UserRole;
+  /// Present only on impersonation-issued tokens: the super-admin's user id.
+  impersonatedBy?: string;
   iat?: number;
   exp?: number;
 }

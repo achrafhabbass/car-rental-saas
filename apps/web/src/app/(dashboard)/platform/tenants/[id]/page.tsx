@@ -5,6 +5,7 @@ import {
   Ban,
   CalendarPlus,
   CheckCircle2,
+  LogIn,
   RotateCcw,
   Trash2,
 } from 'lucide-react';
@@ -19,6 +20,7 @@ import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 import { Badge } from '@/components/ui/table';
 import { ApiError } from '@/lib/api';
+import { enterImpersonation } from '@/lib/impersonation';
 import { platformApi } from '@/lib/resources';
 import { useToast } from '@/lib/toast-context';
 import type {
@@ -232,6 +234,27 @@ export default function PlatformTenantDetailPage() {
     }
   }
 
+  async function impersonate() {
+    if (!id) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await platformApi.impersonate(id);
+      enterImpersonation(result);
+      toast.info(
+        'Impersonation activée',
+        `Connecté en tant que ${result.user.firstName} ${result.user.lastName}`,
+      );
+      router.replace('/dashboard');
+      router.refresh();
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : 'Échec';
+      setError(msg);
+      toast.error('Impersonation échouée', msg);
+      setBusy(false);
+    }
+  }
+
   if (!tenant) {
     return (
       <div className="max-w-container text-sm text-slate-400">
@@ -394,6 +417,12 @@ export default function PlatformTenantDetailPage() {
               <Button variant="danger" onClick={() => setConfirmCancel(true)} disabled={busy}>
                 <RotateCcw className="h-4 w-4" />
                 Résilier
+              </Button>
+            )}
+            {tenant.status !== 'CANCELLED' && (
+              <Button variant="secondary" onClick={impersonate} disabled={busy}>
+                <LogIn className="h-4 w-4" />
+                Login as company
               </Button>
             )}
             <Button

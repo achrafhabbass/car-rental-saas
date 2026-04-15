@@ -867,3 +867,39 @@ model Deposit {
   @@index([clientId])
   @@map("deposits")
 }
+
+// ============================================
+// SYSTEM MODELS — Phase 10 (Platform audit)
+// ============================================
+
+enum PlatformAuditAction {
+  IMPERSONATE
+  TENANT_UPDATE
+  TENANT_SUSPEND
+  TENANT_ACTIVATE
+  TENANT_CANCEL
+  TENANT_DELETE
+  TENANT_EXTEND_TRIAL
+  TENANT_EXTEND_SUBSCRIPTION
+  SWEEP_EXPIRIES
+}
+
+/// Append-only log of every SUPER_ADMIN-initiated platform-level action.
+/// Tenant-scoped business actions are NOT logged here; this is the
+/// SaaS-owner audit trail (who impersonated, suspended, deleted, etc.).
+model PlatformAuditLog {
+  id          String              @id @default(uuid()) @db.Uuid
+  action      PlatformAuditAction
+  actorUserId String?             @db.Uuid
+  tenantId    String?             @db.Uuid
+  metadata    Json?
+  ipAddress   String?             @db.VarChar(64)
+  userAgent   String?             @db.VarChar(512)
+  createdAt   DateTime            @default(now())
+
+  @@index([action])
+  @@index([actorUserId])
+  @@index([tenantId])
+  @@index([createdAt])
+  @@map("platform_audit_logs")
+}

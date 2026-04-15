@@ -11,17 +11,26 @@ import {
   paginate,
 } from '../../common/dto/pagination.dto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AuthService } from '../auth/auth.service';
 import { ListTenantsDto } from './dto/list-tenants.dto';
 import {
   ExtendTrialDto,
   SuspendTenantDto,
   UpdateTenantPlatformDto,
 } from './dto/update-tenant.dto';
+import { PlatformAuditService } from './platform-audit.service';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export interface PlatformMetrics {
-  tenants: { total: number; active: number; trial: number; suspended: number; cancelled: number };
+  tenants: {
+    total: number;
+    active: number;
+    trial: number;
+    suspended: number;
+    cancelled: number;
+    newThisMonth: number;
+  };
   users: { total: number };
   fleet: { total: number };
   contracts: { active: number };
@@ -51,7 +60,77 @@ export interface TenantSummary {
 
 @Injectable()
 export class PlatformService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: PlatformAuditService,
+    private readonly authService: AuthService,
+  ) {}
+
+  /// Issues a fresh set of tokens for the target tenant's ADMIN user so a
+  /// SUPER_ADMIN can act as that tenant. Returns the tokens + the
+  /// impersonated user profile so the frontend can swap sessions and show a
+  /// persistent banner. Audit logging is done by the controller caller.
+  ///
+  /// Constraints:
+  ///   - Tenant must exist and not be deleted.
+  ///   - The first ACTIVE ADMIN of that tenant is the impersonation target.
+  ///   - Refuses tenants in CANCELLED state.
+  async impersonate(
+    tenantId: string,
+    impersonatedByUserId: string,
+  ): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    accessTokenExpiresIn: string;
+    refreshTokenExpiresIn: string;
+    tenantId: string;
+    user: { id: string; email: string; firstName: string; lastName: string; role: string };
+    tenant: { id: string; name: string; slug: string };
+  }> {
+    const tenant = await this.prisma.tenant.findFirst({
+      where: { id: tenantId, deletedAt: null },
+    });
+    if (!tenant) throw new NotFoundException(`Tenant ${tenantId} not found`);
+    if (tenant.status === 'CANCELLED') {
+      throw new BadRequestException('Cannot impersonate a cancelled tenant');
+    }
+
+    const target = await this.prisma.user.findFirst({
+      where: {
+        tenantId,
+        deletedAt: null,
+        status: 'ACTIVE',
+        role: 'ADMIN',
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (!target) {
+      throw new NotFoundException(
+        `Tenant ${tenantId} has no active ADMIN user to impersonate`,
+      );
+    }
+
+    const tokens = await this.authService.issueTokensForImpersonation(
+      target.id,
+      impersonatedByUserId,
+    );
+
+    return {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      accessTokenExpiresIn: tokens.accessTokenExpiresIn,
+      refreshTokenExpiresIn: tokens.refreshTokenExpiresIn,
+      tenantId: tenant.id,
+      user: {
+        id: target.id,
+        email: target.email,
+        firstName: target.firstName,
+        lastName: target.lastName,
+        role: target.role,
+      },
+      tenant: { id: tenant.id, name: tenant.name, slug: tenant.slug },
+    };
+  }
 
   // -------- Metrics --------
 
@@ -59,6 +138,7 @@ export class PlatformService {
     const now = new Date();
     const in7 = new Date(now.getTime() + 7 * DAY_MS);
     const in30 = new Date(now.getTime() + 30 * DAY_MS);
+    const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
     const [
       total,
@@ -66,6 +146,7 @@ export class PlatformService {
       trial,
       suspended,
       cancelled,
+      newThisMonth,
       users,
       fleet,
       contracts,
@@ -79,6 +160,9 @@ export class PlatformService {
       this.prisma.tenant.count({ where: { status: 'TRIAL', deletedAt: null } }),
       this.prisma.tenant.count({ where: { status: 'SUSPENDED', deletedAt: null } }),
       this.prisma.tenant.count({ where: { status: 'CANCELLED', deletedAt: null } }),
+      this.prisma.tenant.count({
+        where: { deletedAt: null, createdAt: { gte: startOfMonth } },
+      }),
       this.prisma.user.count({ where: { deletedAt: null, tenantId: { not: null } } }),
       this.prisma.vehicle.count({ where: { deletedAt: null } }),
       this.prisma.rentalContract.count({ where: { status: 'ACTIVE' } }),
@@ -130,7 +214,7 @@ export class PlatformService {
     }
 
     return {
-      tenants: { total, active, trial, suspended, cancelled },
+      tenants: { total, active, trial, suspended, cancelled, newThisMonth },
       users: { total: users },
       fleet: { total: fleet },
       contracts: { active: contracts },

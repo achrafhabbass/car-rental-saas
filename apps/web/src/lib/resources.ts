@@ -13,6 +13,9 @@ import type {
   ClientPerformanceDto,
   DashboardKpisDto,
   ExtendSubscriptionInput,
+  ImpersonateResponseDto,
+  PlatformAuditActionName,
+  PlatformAuditLogDto,
   PlatformMetricsDto,
   ReportGranularity,
   RevenuePointDto,
@@ -329,6 +332,14 @@ export const platformApi = {
     api.delete<{ id: string; deletedAt: string }>(`/platform/tenants/${id}`),
   sweepExpiries: () =>
     api.post<{ expired: number }>('/platform/sweep-expiries'),
+  impersonate: (id: string) =>
+    api.post<ImpersonateResponseDto>(`/platform/tenants/${id}/impersonate`),
+  auditLogs: (q?: {
+    action?: PlatformAuditActionName;
+    actorUserId?: string;
+    tenantId?: string;
+    limit?: number;
+  }) => api.get<PlatformAuditLogDto[]>(`/platform/audit-logs${qs(q)}`),
 };
 
 // -------- Dashboard badges --------

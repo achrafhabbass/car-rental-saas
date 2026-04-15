@@ -7,6 +7,7 @@ export interface PlatformMetricsDto {
     trial: number;
     suspended: number;
     cancelled: number;
+    newThisMonth: number;
   };
   users: { total: number };
   fleet: { total: number };

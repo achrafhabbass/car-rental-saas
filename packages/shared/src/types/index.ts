@@ -17,3 +17,4 @@ export * from './platform';
 export * from './inspection';
 export * from './deposit';
 export * from './calendar';
+export * from './audit';

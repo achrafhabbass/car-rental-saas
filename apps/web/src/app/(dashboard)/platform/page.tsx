@@ -136,6 +136,63 @@ export default function PlatformDashboardPage() {
         </Card>
       </div>
 
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardBody>
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+              Nouveaux tenants (ce mois)
+            </p>
+            <p className="mt-2 text-2xl font-bold text-slate-900">
+              {metrics ? fmt(metrics.tenants.newThisMonth) : '—'}
+            </p>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody>
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+              Tenants expirés
+            </p>
+            <p className="mt-2 text-2xl font-bold text-red-600">
+              {metrics
+                ? fmt(
+                    Math.max(
+                      metrics.tenants.total -
+                        metrics.tenants.active -
+                        metrics.tenants.trial -
+                        metrics.tenants.suspended -
+                        metrics.tenants.cancelled,
+                      0,
+                    ),
+                  )
+                : '—'}
+            </p>
+            <p className="text-xs text-slate-400 mt-1">
+              statut EXPIRED
+            </p>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody>
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+              Résiliés
+            </p>
+            <p className="mt-2 text-2xl font-bold text-slate-500">
+              {metrics ? fmt(metrics.tenants.cancelled) : '—'}
+            </p>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody>
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+              Total utilisateurs
+            </p>
+            <p className="mt-2 text-2xl font-bold text-slate-900">
+              {metrics ? fmt(metrics.users.total) : '—'}
+            </p>
+          </CardBody>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader>

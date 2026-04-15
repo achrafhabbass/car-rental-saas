@@ -16,6 +16,7 @@ import {
   BellRing,
   ClipboardCheck,
   CalendarRange,
+  ScrollText,
   ShieldCheck,
   Settings,
 } from 'lucide-react';
@@ -87,6 +88,7 @@ const SECTIONS: NavSection[] = [
 const PLATFORM_ITEMS: NavItem[] = [
   { href: '/platform', label: 'Vue plateforme', icon: ShieldCheck },
   { href: '/platform/tenants', label: 'Tenants', icon: Users },
+  { href: '/platform/audit', label: "Journal d'audit", icon: ScrollText },
 ];
 
 function CountBadge({ count, tone }: { count: number; tone: 'red' | 'amber' | 'blue' }) {

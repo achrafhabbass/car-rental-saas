@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Injectable,
   Logger,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -184,6 +185,39 @@ export class AuthService {
     await this.authRepo.revokeAllForUser(userId);
   }
 
+  /**
+   * Issues a fresh access + refresh pair for a given user WITHOUT password
+   * verification. Intended for SUPER_ADMIN impersonation flows only; callers
+   * (platform controller) MUST audit the event. The issued access token
+   * carries an `impersonatedBy` claim so downstream code can distinguish an
+   * impersonated session from a real login.
+   */
+  async issueTokensForImpersonation(
+    targetUserId: string,
+    impersonatedByUserId: string,
+  ): Promise<
+    AuthTokens & { userId: string; tenantId: string | null; impersonatedBy: string }
+  > {
+    const user = await this.usersService.findById(targetUserId);
+    if (!user) throw new NotFoundException(`User ${targetUserId} not found`);
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new ForbiddenException('Target user is not active');
+    }
+    const tokens = await this.issueTokens({
+      sub: user.id,
+      email: user.email,
+      tenantId: user.tenantId,
+      role: user.role,
+      impersonatedBy: impersonatedByUserId,
+    });
+    return {
+      ...tokens,
+      userId: user.id,
+      tenantId: user.tenantId,
+      impersonatedBy: impersonatedByUserId,
+    };
+  }
+
   // -------- internals --------
 
   private async issueTokens(input: {
@@ -191,6 +225,7 @@ export class AuthService {
     email: string;
     tenantId: string | null;
     role: UserRole;
+    impersonatedBy?: string;
   }): Promise<AuthTokens> {
     const accessExpiration = this.config.getOrThrow<string>('jwt.accessExpiration');
     const refreshExpiration = this.config.getOrThrow<string>('jwt.refreshExpiration');
@@ -200,6 +235,7 @@ export class AuthService {
       email: input.email,
       tenantId: input.tenantId,
       role: input.role,
+      ...(input.impersonatedBy ? { impersonatedBy: input.impersonatedBy } : {}),
     };
 
     const jti = randomUUID();
