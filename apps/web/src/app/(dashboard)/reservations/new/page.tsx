@@ -21,7 +21,7 @@ export default function NewReservationPage() {
   useEffect(() => {
     Promise.all([
       vehiclesApi.list({ pageSize: 200, status: 'AVAILABLE' }),
-      clientsApi.list({ pageSize: 200, blacklisted: false }),
+      clientsApi.list({ pageSize: 200 }),
     ])
       .then(([v, c]) => {
         setVehicles(v.items);

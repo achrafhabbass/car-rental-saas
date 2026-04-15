@@ -1,8 +1,8 @@
-import { Type } from 'class-transformer';
 import { IsBoolean, IsEnum, IsOptional } from 'class-validator';
 import { ClientSegment, ClientType } from '@prisma/client';
 
 import { PaginationDto } from '../../../common/dto/pagination.dto';
+import { ToBoolean } from '../../../common/transformers/boolean.transformer';
 
 export class ListClientsDto extends PaginationDto {
   @IsOptional()
@@ -14,7 +14,7 @@ export class ListClientsDto extends PaginationDto {
   segment?: ClientSegment;
 
   @IsOptional()
-  @Type(() => Boolean)
+  @ToBoolean()
   @IsBoolean()
   blacklisted?: boolean;
 }

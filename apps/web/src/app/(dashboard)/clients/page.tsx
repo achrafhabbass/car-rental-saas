@@ -82,8 +82,13 @@ export default function ClientsPage() {
             ) : (
               items.map((c) => (
                 <Tr key={c.id}>
-                  <Td className="font-medium text-slate-900">
-                    {c.fullName}
+                  <Td>
+                    <Link
+                      href={`/clients/${c.id}`}
+                      className="font-medium text-slate-900 hover:text-primary-500"
+                    >
+                      {c.fullName}
+                    </Link>
                     {c.blacklisted && (
                       <Badge tone="red">
                         <span className="ml-2">Blacklisté</span>

@@ -26,7 +26,7 @@ export default function NewPaymentPage() {
 
   useEffect(() => {
     Promise.all([
-      clientsApi.list({ pageSize: 200, blacklisted: false }),
+      clientsApi.list({ pageSize: 200 }),
       contractsApi.list({ pageSize: 200, status: 'ACTIVE' }),
       invoicesApi.list({ pageSize: 200 }),
     ])

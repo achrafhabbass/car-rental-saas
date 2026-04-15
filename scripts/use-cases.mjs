@@ -436,6 +436,37 @@ async function clientUseCases() {
       'all returned clients must be blacklisted',
     );
   });
+
+  await uc(
+    'CLI-05',
+    'blacklisted=false returns non-blacklisted clients (regression: used to be empty)',
+    async () => {
+      const r = await call('GET', '/clients?blacklisted=false', { token: ctx.tenantA.token });
+      expect(r, 200);
+      assert(
+        data(r).items.every((c) => c.blacklisted === false),
+        'all returned clients must be non-blacklisted',
+      );
+      assert(
+        data(r).items.some((c) => c.id === ctx.client.id),
+        'non-blacklisted list should include our non-blacklisted test client',
+      );
+    },
+  );
+
+  await uc(
+    'CLI-06',
+    'update client via PATCH (regression: edit UI must work)',
+    async () => {
+      const r = await call('PATCH', `/clients/${ctx.client.id}`, {
+        token: ctx.tenantA.token,
+        body: { phone: '+212611223344', city: 'Casablanca' },
+      });
+      expect(r, 200);
+      assert(data(r).phone === '+212611223344', `phone not persisted: ${data(r).phone}`);
+      assert(data(r).city === 'Casablanca', `city not persisted: ${data(r).city}`);
+    },
+  );
 }
 
 // ---------------------------------------------------------------

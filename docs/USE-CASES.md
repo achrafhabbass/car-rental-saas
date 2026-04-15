@@ -41,7 +41,7 @@ living todo list.
 | VEH-07 | Create vehicle with expired insurance (used downstream for alerts & booking-blocker UCs) | 201 |
 | VEH-08 | Cross-tenant FK injection: tenant B cannot create a reservation against tenant A's vehicle id | 403/404/409 |
 
-## CLIENTS — 4 use cases
+## CLIENTS — 6 use cases
 
 | ID | Use case | Expected |
 |----|----------|----------|
@@ -49,6 +49,8 @@ living todo list.
 | CLI-02 | Duplicate CIN within a tenant | 409 |
 | CLI-03 | Blacklist a client | `blacklisted = true` persisted |
 | CLI-04 | List filter `blacklisted=true` | all returned rows are blacklisted |
+| CLI-05 | `blacklisted=false` returns non-blacklisted clients (regression: used to return empty because `@Type(() => Boolean)` coerced `"false"` → `true`) | seeded non-blacklisted client is included |
+| CLI-06 | `PATCH /clients/:id` persists edits (backs the new `/clients/[id]` edit UI) | phone + city round-trip |
 
 ## RESERVATIONS — 5 use cases
 

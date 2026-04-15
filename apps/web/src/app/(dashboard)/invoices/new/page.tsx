@@ -33,7 +33,7 @@ export default function NewInvoicePage() {
 
   useEffect(() => {
     Promise.all([
-      clientsApi.list({ pageSize: 200, blacklisted: false }),
+      clientsApi.list({ pageSize: 200 }),
       contractsApi.list({ pageSize: 200 }),
     ])
       .then(([c, co]) => {

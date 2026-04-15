@@ -84,7 +84,14 @@ export default function VehiclesPage() {
             ) : (
               items.map((v) => (
                 <Tr key={v.id}>
-                  <Td className="font-medium text-slate-900">{v.registration}</Td>
+                  <Td>
+                    <Link
+                      href={`/vehicles/${v.id}`}
+                      className="font-medium text-slate-900 hover:text-primary-500"
+                    >
+                      {v.registration}
+                    </Link>
+                  </Td>
                   <Td>
                     {v.brand} {v.model}
                   </Td>

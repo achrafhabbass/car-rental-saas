@@ -32,7 +32,10 @@ async function bootstrap(): Promise<void> {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-      transformOptions: { enableImplicitConversion: true },
+      // Explicit @Type / @ToBoolean / @Transform on every DTO field.
+      // Implicit conversion uses Boolean() for bool fields, which silently
+      // turns "false" into true — broke the client-list blacklisted filter.
+      transformOptions: { enableImplicitConversion: false },
     }),
   );
   app.useGlobalFilters(new HttpExceptionFilter());
