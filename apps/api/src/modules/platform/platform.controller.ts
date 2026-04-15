@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -13,6 +16,7 @@ import { AllowNoTenant } from '../../common/decorators/allow-no-tenant.decorator
 import { Roles } from '../../common/decorators/roles.decorator';
 import { ListTenantsDto } from './dto/list-tenants.dto';
 import {
+  ExtendSubscriptionDto,
   ExtendTrialDto,
   SuspendTenantDto,
   UpdateTenantPlatformDto,
@@ -81,6 +85,20 @@ export class PlatformController {
     @Body() dto: ExtendTrialDto,
   ) {
     return this.platform.extendTrial(id, dto);
+  }
+
+  @Post('tenants/:id/extend-subscription')
+  extendSubscription(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ExtendSubscriptionDto,
+  ) {
+    return this.platform.extendSubscription(id, dto);
+  }
+
+  @Delete('tenants/:id')
+  @HttpCode(HttpStatus.OK)
+  softDelete(@Param('id', ParseUUIDPipe) id: string) {
+    return this.platform.softDelete(id);
   }
 
   @Post('sweep-expiries')

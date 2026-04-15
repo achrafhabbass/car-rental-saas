@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
   UnauthorizedException,
@@ -101,6 +102,30 @@ export class AuthService {
     const passwordOk = await bcrypt.compare(dto.password, user.passwordHash);
     if (!passwordOk) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Tenant-level access gate. SUPER_ADMIN users have no tenant and bypass.
+    // Any tenant in EXPIRED/SUSPENDED/CANCELLED denies login for ALL its
+    // users with a clear, support-friendly message.
+    if (user.role !== 'SUPER_ADMIN' && user.tenantId) {
+      const tenant = await this.tenantsService.findById(user.tenantId);
+      if (tenant) {
+        if (tenant.status === 'EXPIRED') {
+          throw new ForbiddenException(
+            'Your subscription has expired. Please contact support.',
+          );
+        }
+        if (tenant.status === 'SUSPENDED') {
+          throw new ForbiddenException(
+            'Your company account has been suspended. Please contact support.',
+          );
+        }
+        if (tenant.status === 'CANCELLED') {
+          throw new ForbiddenException(
+            'Your company account has been cancelled. Please contact support.',
+          );
+        }
+      }
     }
 
     await this.usersService.markLoggedIn(user.id);

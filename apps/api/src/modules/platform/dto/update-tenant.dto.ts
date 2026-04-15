@@ -27,6 +27,16 @@ export class UpdateTenantPlatformDto {
   billingEmail?: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  address?: string;
+
+  @IsOptional()
   @IsDateString()
   subscriptionEnd?: string;
 }
@@ -36,6 +46,20 @@ export class ExtendTrialDto {
   @IsInt()
   @Min(1)
   days!: number;
+}
+
+/// Either `days` (added to current subscriptionEnd) or `newEndDate`
+/// (absolute new end). At least one is required — service enforces.
+export class ExtendSubscriptionDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  days?: number;
+
+  @IsOptional()
+  @IsDateString()
+  newEndDate?: string;
 }
 
 export class SuspendTenantDto {

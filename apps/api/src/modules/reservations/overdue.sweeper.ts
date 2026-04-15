@@ -31,6 +31,31 @@ export class OverdueReservationsSweeper {
   async runDaily(): Promise<void> {
     await this.sweep();
     await this.sweepContracts();
+    await this.sweepTenantSubscriptions();
+  }
+
+  /// Marks any TRIAL/ACTIVE tenant whose trialEndsAt or subscriptionEnd is
+  /// in the past as EXPIRED. From that point onwards, AuthService.login
+  /// refuses to grant tokens to any non-SUPER_ADMIN user belonging to that
+  /// tenant. Idempotent: re-running the same day is safe.
+  async sweepTenantSubscriptions(): Promise<{ expired: number }> {
+    const now = new Date();
+    const result = await this.prisma.tenant.updateMany({
+      where: {
+        deletedAt: null,
+        OR: [
+          { status: 'TRIAL', trialEndsAt: { lt: now } },
+          { status: 'ACTIVE', subscriptionEnd: { lt: now } },
+        ],
+      },
+      data: { status: 'EXPIRED' },
+    });
+    if (result.count > 0) {
+      this.logger.log(
+        `Tenant subscription sweep: ${result.count} tenant(s) marked EXPIRED`,
+      );
+    }
+    return { expired: result.count };
   }
 
   /// Same idea as sweep() but for ACTIVE contracts whose endDate has passed

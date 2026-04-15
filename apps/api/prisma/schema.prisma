@@ -269,6 +269,7 @@ model Tenant {
   plan              TenantPlan   @default(STARTER)
   billingEmail      String?      @db.VarChar(255)
   phone             String?      @db.VarChar(32)
+  address           String?      @db.VarChar(500)
   country           String?      @db.VarChar(8)
   locale            String       @default("fr") @db.VarChar(8)
   timezone          String       @default("Africa/Casablanca") @db.VarChar(64)

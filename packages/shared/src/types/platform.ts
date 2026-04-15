@@ -23,6 +23,9 @@ export interface TenantSummaryDto {
   status: TenantStatusName;
   plan: TenantPlanName;
   billingEmail: string | null;
+  phone: string | null;
+  address: string | null;
+  subscriptionStart: string | null;
   subscriptionEnd: string | null;
   trialEndsAt: string | null;
   createdAt: string;
@@ -36,5 +39,12 @@ export interface UpdateTenantPlatformInput {
   name?: string;
   plan?: TenantPlanName;
   billingEmail?: string;
+  phone?: string;
+  address?: string;
   subscriptionEnd?: string;
+}
+
+export interface ExtendSubscriptionInput {
+  days?: number;
+  newEndDate?: string;
 }

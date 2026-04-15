@@ -1112,7 +1112,11 @@ async function enhancementsUseCases() {
       token: ctx.tenantA.token,
     });
     expect(sweep, 200);
-    assert(data(sweep).marked >= 1, `expected >= 1 marked, got ${data(sweep).marked}`);
+    // Endpoint returns either { marked, notified } (legacy) or
+    // { reservations: { marked }, contracts: { marked } } (current).
+    const marked =
+      data(sweep)?.marked ?? data(sweep)?.reservations?.marked ?? 0;
+    assert(marked >= 1, `expected >= 1 reservation marked, got ${marked}`);
 
     const fresh = await call('GET', `/reservations/${data(oRes).id}`, {
       token: ctx.tenantA.token,

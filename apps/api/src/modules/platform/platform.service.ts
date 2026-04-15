@@ -37,6 +37,9 @@ export interface TenantSummary {
   status: string;
   plan: string;
   billingEmail: string | null;
+  phone: string | null;
+  address: string | null;
+  subscriptionStart: string | null;
   subscriptionEnd: string | null;
   trialEndsAt: string | null;
   createdAt: string;
@@ -193,6 +196,9 @@ export class PlatformService {
       status: tenant.status,
       plan: tenant.plan,
       billingEmail: tenant.billingEmail,
+      phone: tenant.phone,
+      address: tenant.address,
+      subscriptionStart: tenant.subscriptionStart?.toISOString() ?? null,
       subscriptionEnd: tenant.subscriptionEnd?.toISOString() ?? null,
       trialEndsAt: tenant.trialEndsAt?.toISOString() ?? null,
       createdAt: tenant.createdAt.toISOString(),
@@ -215,6 +221,8 @@ export class PlatformService {
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.plan !== undefined) data.plan = dto.plan;
     if (dto.billingEmail !== undefined) data.billingEmail = dto.billingEmail;
+    if (dto.phone !== undefined) data.phone = dto.phone;
+    if (dto.address !== undefined) data.address = dto.address;
     if (dto.subscriptionEnd !== undefined)
       data.subscriptionEnd = new Date(dto.subscriptionEnd);
 
@@ -287,6 +295,65 @@ export class PlatformService {
       where: { id },
       data: { trialEndsAt: newEnd },
     });
+  }
+
+  /// Extends the paid subscription. Accepts either an explicit newEndDate or
+  /// a number of days to add. Works for ACTIVE / EXPIRED / SUSPENDED tenants
+  /// (anything except CANCELLED). EXPIRED tenants are flipped back to ACTIVE
+  /// so their users can log in again.
+  async extendSubscription(
+    id: string,
+    input: { days?: number; newEndDate?: string },
+  ): Promise<Tenant> {
+    const tenant = await this.prisma.tenant.findFirst({
+      where: { id, deletedAt: null },
+    });
+    if (!tenant) throw new NotFoundException(`Tenant ${id} not found`);
+    if (tenant.status === 'CANCELLED') {
+      throw new BadRequestException(
+        'Cancelled tenants cannot be extended; reactivate first',
+      );
+    }
+    if (!input.days && !input.newEndDate) {
+      throw new BadRequestException('Provide either `days` or `newEndDate`');
+    }
+
+    let newEnd: Date;
+    if (input.newEndDate) {
+      newEnd = new Date(input.newEndDate);
+      if (Number.isNaN(newEnd.getTime())) {
+        throw new BadRequestException('Invalid newEndDate');
+      }
+    } else {
+      const base = tenant.subscriptionEnd ?? new Date();
+      const reference = base.getTime() > Date.now() ? base : new Date();
+      newEnd = new Date(reference.getTime() + (input.days ?? 0) * DAY_MS);
+    }
+    if (newEnd.getTime() <= Date.now()) {
+      throw new BadRequestException('New end date must be in the future');
+    }
+
+    const data: Prisma.TenantUpdateInput = { subscriptionEnd: newEnd };
+    if (!tenant.subscriptionStart) data.subscriptionStart = new Date();
+    if (tenant.status === 'EXPIRED' || tenant.status === 'SUSPENDED') {
+      data.status = 'ACTIVE';
+    }
+    return this.prisma.tenant.update({ where: { id }, data });
+  }
+
+  /// Soft-deletes a tenant. Stamps deletedAt + flips status to CANCELLED so
+  /// downstream queries (which already filter on deletedAt) drop it. Tenant
+  /// data stays in the DB for audit; full purge is a separate operation.
+  async softDelete(id: string): Promise<{ id: string; deletedAt: string }> {
+    const tenant = await this.prisma.tenant.findFirst({
+      where: { id, deletedAt: null },
+    });
+    if (!tenant) throw new NotFoundException(`Tenant ${id} not found`);
+    const updated = await this.prisma.tenant.update({
+      where: { id },
+      data: { deletedAt: new Date(), status: 'CANCELLED' },
+    });
+    return { id: updated.id, deletedAt: updated.deletedAt!.toISOString() };
   }
 
   /// Bulk sweep: mark tenants as EXPIRED if their trial/subscription ended.

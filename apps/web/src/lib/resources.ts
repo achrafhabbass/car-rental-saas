@@ -12,6 +12,7 @@ import type {
   VehicleInspectionDto,
   ClientPerformanceDto,
   DashboardKpisDto,
+  ExtendSubscriptionInput,
   PlatformMetricsDto,
   ReportGranularity,
   RevenuePointDto,
@@ -322,6 +323,10 @@ export const platformApi = {
     api.post<TenantDto>(`/platform/tenants/${id}/cancel`, { reason }),
   extendTrial: (id: string, days: number) =>
     api.post<TenantDto>(`/platform/tenants/${id}/extend-trial`, { days }),
+  extendSubscription: (id: string, body: ExtendSubscriptionInput) =>
+    api.post<TenantDto>(`/platform/tenants/${id}/extend-subscription`, body),
+  softDelete: (id: string) =>
+    api.delete<{ id: string; deletedAt: string }>(`/platform/tenants/${id}`),
   sweepExpiries: () =>
     api.post<{ expired: number }>('/platform/sweep-expiries'),
 };
