@@ -1,7 +1,9 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Header, Param, Post, Query, Res } from '@nestjs/common';
+import type { Response } from 'express';
 
 import { AllowNoTenant } from '../../common/decorators/allow-no-tenant.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { SkipEnvelope } from '../../common/decorators/skip-envelope.decorator';
 import { BillingService } from './billing.service';
 import { RecordSubscriptionPaymentDto } from './dto/record-payment.dto';
 
@@ -41,5 +43,23 @@ export class BillingController {
     @Body() dto: RecordSubscriptionPaymentDto,
   ) {
     return this.billing.recordPayment(tenantId, dto);
+  }
+
+  @Get('invoices')
+  listInvoices(@Query('limit') limit?: string) {
+    const n = Math.min(parseInt(limit ?? '50', 10) || 50, 200);
+    return this.billing.listInvoices(n);
+  }
+
+  @SkipEnvelope()
+  @Get('invoices/:id/pdf')
+  @Header('Content-Type', 'application/pdf')
+  async downloadInvoicePdf(
+    @Param('id') id: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<NodeJS.ReadableStream> {
+    res.setHeader('Content-Disposition', `attachment; filename="invoice-${id}.pdf"`);
+    res.setHeader('Cache-Control', 'no-store');
+    return this.billing.generateInvoicePdf(id);
   }
 }

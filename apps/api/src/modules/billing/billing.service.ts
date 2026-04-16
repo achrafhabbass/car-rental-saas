@@ -4,12 +4,15 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import type { SubscriptionPayment, TenantPlan } from '@prisma/client';
+import type { SubscriptionInvoice, SubscriptionPayment, TenantPlan } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationService } from '../mail/notification.service';
 import { getPlan, PLANS, type PlanDefinition } from './plan-definitions';
+import { buildSubscriptionInvoicePdf } from './subscription-invoice-pdf';
 import type { RecordSubscriptionPaymentDto } from './dto/record-payment.dto';
+
+const TAX_RATE = 0.20;
 
 @Injectable()
 export class BillingService {
@@ -116,10 +119,107 @@ export class BillingService {
       this.logger.log(`Tenant ${tenant.name} reactivated from ${tenant.status}`);
     }
 
-    // Email notification
-    void this.notifications.onSubscriptionExpiring(tenantId, periodDays);
+    // Auto-generate invoice
+    void this.createInvoice(payment.id, tenantId, Number(payment.amount));
 
     return payment;
+  }
+
+  /**
+   * Auto-generate a subscription invoice linked to a payment.
+   */
+  async createInvoice(
+    paymentId: string,
+    tenantId: string,
+    amountHt: number,
+  ): Promise<SubscriptionInvoice> {
+    const taxAmount = Math.round(amountHt * TAX_RATE * 100) / 100;
+    const totalTtc = Math.round((amountHt + taxAmount) * 100) / 100;
+    const invoiceNumber = await this.generateInvoiceNumber();
+
+    return this.prisma.subscriptionInvoice.create({
+      data: {
+        invoiceNumber,
+        paymentId,
+        tenantId,
+        amount: amountHt,
+        taxRate: TAX_RATE,
+        taxAmount,
+        totalTtc,
+      },
+    });
+  }
+
+  private async generateInvoiceNumber(): Promise<string> {
+    const now = new Date();
+    const prefix = `SINV-${now.getFullYear()}-`;
+    const last = await this.prisma.subscriptionInvoice.findFirst({
+      where: { invoiceNumber: { startsWith: prefix } },
+      orderBy: { invoiceNumber: 'desc' },
+      select: { invoiceNumber: true },
+    });
+    const seq = last
+      ? parseInt(last.invoiceNumber.replace(prefix, ''), 10) + 1
+      : 1;
+    return `${prefix}${String(seq).padStart(4, '0')}`;
+  }
+
+  /** List invoices for super-admin. */
+  async listInvoices(limit = 50): Promise<SubscriptionInvoice[]> {
+    return this.prisma.subscriptionInvoice.findMany({
+      orderBy: { issuedAt: 'desc' },
+      take: limit,
+      include: {
+        tenant: { select: { name: true, slug: true } },
+        payment: {
+          select: { plan: true, period: true, method: true, reference: true, startDate: true, endDate: true },
+        },
+      },
+    });
+  }
+
+  /** Generate a PDF stream for a subscription invoice. */
+  async generateInvoicePdf(invoiceId: string): Promise<NodeJS.ReadableStream> {
+    const inv = await this.prisma.subscriptionInvoice.findUnique({
+      where: { id: invoiceId },
+      include: {
+        tenant: true,
+        payment: true,
+      },
+    });
+    if (!inv) throw new NotFoundException(`Invoice ${invoiceId} not found`);
+
+    const plan = getPlan(inv.payment.plan);
+    const periodLabel = inv.payment.period === 'ANNUAL' ? 'Annuel' : 'Mensuel';
+
+    return buildSubscriptionInvoicePdf({
+      invoiceNumber: inv.invoiceNumber,
+      issuedAt: inv.issuedAt,
+      issuer: {
+        name: 'AutoSphere SaaS',
+        address: 'Plateforme de gestion de location de voitures',
+        phone: null,
+        email: 'billing@autosphere.ma',
+      },
+      client: {
+        name: inv.tenant.name,
+        address: inv.tenant.address,
+        city: inv.tenant.city,
+        ice: inv.tenant.ice,
+        rc: inv.tenant.rc,
+      },
+      plan: plan.name,
+      period: periodLabel,
+      startDate: inv.payment.startDate.toLocaleDateString('fr-FR'),
+      endDate: inv.payment.endDate.toLocaleDateString('fr-FR'),
+      amountHt: Number(inv.amount),
+      taxRate: Number(inv.taxRate),
+      taxAmount: Number(inv.taxAmount),
+      totalTtc: Number(inv.totalTtc),
+      currency: inv.currency,
+      method: inv.payment.method,
+      reference: inv.payment.reference,
+    });
   }
 
   /**

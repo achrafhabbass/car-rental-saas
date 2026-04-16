@@ -49,6 +49,7 @@ import type {
   RecordCreditPaymentInput,
   RecordSubscriptionPaymentInput,
   RegisterRequest,
+  SubscriptionInvoiceDto,
   RentalContractDto,
   ReservationDto,
   SubscriptionPaymentDto,
@@ -123,6 +124,9 @@ export const billingApi = {
     api.get<SubscriptionPaymentDto[]>(`/platform/billing/payments/${tenantId}`),
   recordPayment: (tenantId: string, body: RecordSubscriptionPaymentInput) =>
     api.post<SubscriptionPaymentDto>(`/platform/billing/pay/${tenantId}`, body),
+  invoices: (limit = 50) =>
+    api.get<SubscriptionInvoiceDto[]>(`/platform/billing/invoices${qs({ limit })}`),
+  invoicePdfPath: (id: string) => `/platform/billing/invoices/${id}/pdf`,
 };
 
 export const tenantSelfApi = {

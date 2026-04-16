@@ -4,6 +4,8 @@ import {
   CheckCircle2,
   CreditCard,
   DollarSign,
+  FileDown,
+  FileText,
   Star,
   TrendingUp,
 } from 'lucide-react';
@@ -14,13 +16,14 @@ import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field, Input, Select } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 import { Badge, Table, Tbody, Td, Th, Thead, Tr } from '@/components/ui/table';
-import { ApiError } from '@/lib/api';
+import { ApiError, downloadFile } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { billingApi, platformApi } from '@/lib/resources';
 import { useToast } from '@/lib/toast-context';
 import type {
   BillingSummaryDto,
   PlanDefinitionDto,
+  SubscriptionInvoiceDto,
   SubscriptionPaymentDto,
   TenantDto,
 } from '@autosphere/shared';
@@ -52,6 +55,7 @@ export default function BillingPage() {
   const [summary, setSummary] = useState<BillingSummaryDto | null>(null);
   const [payments, setPayments] = useState<SubscriptionPaymentDto[]>([]);
   const [tenants, setTenants] = useState<TenantDto[]>([]);
+  const [invoices, setInvoices] = useState<SubscriptionInvoiceDto[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   // Payment form
@@ -71,12 +75,14 @@ export default function BillingPage() {
       billingApi.summary(),
       billingApi.payments(30),
       platformApi.listTenants({ pageSize: 200 }),
+      billingApi.invoices(30),
     ])
-      .then(([p, s, pay, t]) => {
+      .then(([p, s, pay, t, inv]) => {
         setPlans(p);
         setSummary(s);
         setPayments(pay);
         setTenants(t.items);
+        setInvoices(inv);
       })
       .catch((err) => {
         if (err instanceof ApiError) setError(err.message);
@@ -304,6 +310,71 @@ export default function BillingPage() {
                     <Td className="font-semibold">{fmt(Number(p.amount))} MAD</Td>
                     <Td>{p.method}</Td>
                     <Td className="whitespace-nowrap">{formatDate(p.endDate)}</Td>
+                  </Tr>
+                ))
+              )}
+            </Tbody>
+          </Table>
+        </CardBody>
+      </Card>
+
+      {/* Invoices */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-primary-500" />
+            Factures d'abonnement
+          </CardTitle>
+          <Badge tone="slate">{invoices.length} dernières</Badge>
+        </CardHeader>
+        <CardBody className="overflow-x-auto">
+          <Table>
+            <Thead>
+              <Tr>
+                <Th>N° Facture</Th>
+                <Th>Tenant</Th>
+                <Th>Plan</Th>
+                <Th>Montant HT</Th>
+                <Th>TVA</Th>
+                <Th>Total TTC</Th>
+                <Th>Date</Th>
+                <Th>PDF</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {invoices.length === 0 ? (
+                <Tr>
+                  <Td colSpan={8} className="text-center text-slate-400 py-6">
+                    Aucune facture. Les factures sont générées automatiquement
+                    après chaque paiement.
+                  </Td>
+                </Tr>
+              ) : (
+                invoices.map((inv) => (
+                  <Tr key={inv.id}>
+                    <Td className="font-mono text-xs font-semibold">{inv.invoiceNumber}</Td>
+                    <Td className="font-medium">{inv.tenant?.name ?? '—'}</Td>
+                    <Td>
+                      <Badge tone="blue">{inv.payment?.plan ?? '—'}</Badge>
+                    </Td>
+                    <Td>{fmt(Number(inv.amount))} MAD</Td>
+                    <Td className="text-slate-500">{fmt(Number(inv.taxAmount))} MAD</Td>
+                    <Td className="font-semibold">{fmt(Number(inv.totalTtc))} MAD</Td>
+                    <Td className="whitespace-nowrap">{formatDate(inv.issuedAt)}</Td>
+                    <Td>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          downloadFile(
+                            billingApi.invoicePdfPath(inv.id),
+                            `${inv.invoiceNumber}.pdf`,
+                          )
+                        }
+                      >
+                        <FileDown className="h-4 w-4" />
+                      </Button>
+                    </Td>
                   </Tr>
                 ))
               )}

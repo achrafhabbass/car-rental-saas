@@ -35,6 +35,28 @@ export interface BillingSummaryDto {
   avgPayment: number;
 }
 
+export interface SubscriptionInvoiceDto {
+  id: string;
+  invoiceNumber: string;
+  paymentId: string;
+  tenantId: string;
+  amount: string;
+  taxRate: string;
+  taxAmount: string;
+  totalTtc: string;
+  currency: string;
+  issuedAt: string;
+  tenant?: { name: string; slug: string };
+  payment?: {
+    plan: string;
+    period: SubscriptionPeriodName;
+    method: string;
+    reference: string | null;
+    startDate: string;
+    endDate: string;
+  };
+}
+
 export interface RecordSubscriptionPaymentInput {
   plan: string;
   period: SubscriptionPeriodName;

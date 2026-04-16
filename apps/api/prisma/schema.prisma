@@ -309,6 +309,7 @@ model Tenant {
   inspections          VehicleInspection[]
   deposits             Deposit[]
   subscriptionPayments SubscriptionPayment[]
+  subscriptionInvoices SubscriptionInvoice[]
 
   @@index([status])
   @@index([plan])
@@ -335,11 +336,33 @@ model SubscriptionPayment {
   paidAt    DateTime           @default(now())
   createdAt DateTime           @default(now())
 
-  tenant Tenant @relation(fields: [tenantId], references: [id])
+  tenant  Tenant              @relation(fields: [tenantId], references: [id])
+  invoice SubscriptionInvoice?
 
   @@index([tenantId])
   @@index([paidAt])
   @@map("subscription_payments")
+}
+
+model SubscriptionInvoice {
+  id            String   @id @default(uuid()) @db.Uuid
+  invoiceNumber String   @unique @db.VarChar(32)
+  paymentId     String   @unique @db.Uuid
+  tenantId      String   @db.Uuid
+  amount        Decimal  @db.Decimal(12, 2)
+  taxRate       Decimal  @default(0.20) @db.Decimal(5, 4)
+  taxAmount     Decimal  @db.Decimal(12, 2)
+  totalTtc      Decimal  @db.Decimal(12, 2)
+  currency      String   @default("MAD") @db.VarChar(8)
+  issuedAt      DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  payment SubscriptionPayment @relation(fields: [paymentId], references: [id])
+  tenant  Tenant              @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([issuedAt])
+  @@map("subscription_invoices")
 }
 
 model User {
