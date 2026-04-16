@@ -1,8 +1,10 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -65,7 +67,7 @@ export class AuthService {
             passwordHash,
             firstName: dto.firstName,
             lastName: dto.lastName,
-            role: UserRole.OWNER,
+            role: UserRole.ADMIN,
             status: UserStatus.ACTIVE,
           },
         });
@@ -101,6 +103,30 @@ export class AuthService {
     const passwordOk = await bcrypt.compare(dto.password, user.passwordHash);
     if (!passwordOk) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Tenant-level access gate. SUPER_ADMIN users have no tenant and bypass.
+    // Any tenant in EXPIRED/SUSPENDED/CANCELLED denies login for ALL its
+    // users with a clear, support-friendly message.
+    if (user.role !== 'SUPER_ADMIN' && user.tenantId) {
+      const tenant = await this.tenantsService.findById(user.tenantId);
+      if (tenant) {
+        if (tenant.status === 'EXPIRED') {
+          throw new ForbiddenException(
+            'Your subscription has expired. Please contact support.',
+          );
+        }
+        if (tenant.status === 'SUSPENDED') {
+          throw new ForbiddenException(
+            'Your company account has been suspended. Please contact support.',
+          );
+        }
+        if (tenant.status === 'CANCELLED') {
+          throw new ForbiddenException(
+            'Your company account has been cancelled. Please contact support.',
+          );
+        }
+      }
     }
 
     await this.usersService.markLoggedIn(user.id);
@@ -139,6 +165,8 @@ export class AuthService {
       throw new UnauthorizedException('User is not active');
     }
 
+    // issueTokens() already persists the new refresh token row, so we
+    // only need to look it up afterwards to chain the replacedById.
     const newTokens = await this.issueTokens({
       sub: user.id,
       email: user.email,
@@ -147,20 +175,47 @@ export class AuthService {
     });
 
     const newHash = this.hashToken(newTokens.refreshToken);
-    const newStored = await this.authRepo.createRefreshToken({
-      userId: user.id,
-      tenantId: user.tenantId,
-      tokenHash: newHash,
-      expiresAt: this.computeRefreshExpiry(),
-    });
-
-    await this.authRepo.revokeRefreshToken(stored.id, newStored.id);
+    const newStored = await this.authRepo.findActiveRefreshTokenByHash(newHash);
+    await this.authRepo.revokeRefreshToken(stored.id, newStored?.id);
 
     return newTokens;
   }
 
   async logout(userId: string): Promise<void> {
     await this.authRepo.revokeAllForUser(userId);
+  }
+
+  /**
+   * Issues a fresh access + refresh pair for a given user WITHOUT password
+   * verification. Intended for SUPER_ADMIN impersonation flows only; callers
+   * (platform controller) MUST audit the event. The issued access token
+   * carries an `impersonatedBy` claim so downstream code can distinguish an
+   * impersonated session from a real login.
+   */
+  async issueTokensForImpersonation(
+    targetUserId: string,
+    impersonatedByUserId: string,
+  ): Promise<
+    AuthTokens & { userId: string; tenantId: string | null; impersonatedBy: string }
+  > {
+    const user = await this.usersService.findById(targetUserId);
+    if (!user) throw new NotFoundException(`User ${targetUserId} not found`);
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new ForbiddenException('Target user is not active');
+    }
+    const tokens = await this.issueTokens({
+      sub: user.id,
+      email: user.email,
+      tenantId: user.tenantId,
+      role: user.role,
+      impersonatedBy: impersonatedByUserId,
+    });
+    return {
+      ...tokens,
+      userId: user.id,
+      tenantId: user.tenantId,
+      impersonatedBy: impersonatedByUserId,
+    };
   }
 
   // -------- internals --------
@@ -170,6 +225,7 @@ export class AuthService {
     email: string;
     tenantId: string | null;
     role: UserRole;
+    impersonatedBy?: string;
   }): Promise<AuthTokens> {
     const accessExpiration = this.config.getOrThrow<string>('jwt.accessExpiration');
     const refreshExpiration = this.config.getOrThrow<string>('jwt.refreshExpiration');
@@ -179,6 +235,7 @@ export class AuthService {
       email: input.email,
       tenantId: input.tenantId,
       role: input.role,
+      ...(input.impersonatedBy ? { impersonatedBy: input.impersonatedBy } : {}),
     };
 
     const jti = randomUUID();

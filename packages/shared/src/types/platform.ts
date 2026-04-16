@@ -1,0 +1,51 @@
+import type { TenantPlanName, TenantStatusName } from './tenant';
+
+export interface PlatformMetricsDto {
+  tenants: {
+    total: number;
+    active: number;
+    trial: number;
+    suspended: number;
+    cancelled: number;
+    newThisMonth: number;
+  };
+  users: { total: number };
+  fleet: { total: number };
+  contracts: { active: number };
+  revenue: { mrrApprox: number };
+  expiring: { days7: number; days30: number };
+  byPlan: Record<string, number>;
+}
+
+export interface TenantSummaryDto {
+  id: string;
+  name: string;
+  slug: string;
+  status: TenantStatusName;
+  plan: TenantPlanName;
+  billingEmail: string | null;
+  phone: string | null;
+  address: string | null;
+  subscriptionStart: string | null;
+  subscriptionEnd: string | null;
+  trialEndsAt: string | null;
+  createdAt: string;
+  userCount: number;
+  vehicleCount: number;
+  activeContractCount: number;
+  outstandingBalance: number;
+}
+
+export interface UpdateTenantPlatformInput {
+  name?: string;
+  plan?: TenantPlanName;
+  billingEmail?: string;
+  phone?: string;
+  address?: string;
+  subscriptionEnd?: string;
+}
+
+export interface ExtendSubscriptionInput {
+  days?: number;
+  newEndDate?: string;
+}

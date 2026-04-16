@@ -33,8 +33,70 @@ export interface AuthenticatedUser {
 
 export type UserRoleName =
   | 'SUPER_ADMIN'
-  | 'OWNER'
+  | 'ADMIN'
   | 'MANAGER'
-  | 'AGENT'
-  | 'ACCOUNTANT'
-  | 'VIEWER';
+  | 'EMPLOYEE'
+  | 'ACCOUNTANT';
+
+export interface AuthProfileTenantDto {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  plan: string | null;
+  phone: string | null;
+  billingEmail: string | null;
+  address: string | null;
+  city: string | null;
+  website: string | null;
+  logoUrl: string | null;
+  taxId: string | null;
+  ice: string | null;
+  rc: string | null;
+  patente: string | null;
+  cnss: string | null;
+  bankName: string | null;
+  bankRib: string | null;
+}
+
+export interface UpdateTenantSelfInput {
+  name?: string;
+  phone?: string;
+  billingEmail?: string;
+  address?: string;
+  city?: string;
+  website?: string;
+  logoUrl?: string;
+  taxId?: string;
+  ice?: string;
+  rc?: string;
+  patente?: string;
+  cnss?: string;
+  bankName?: string;
+  bankRib?: string;
+}
+
+export interface AuthProfileDto {
+  id: string;
+  tenantId: string | null;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: UserRoleName;
+  status: 'ACTIVE' | 'INVITED' | 'SUSPENDED' | 'DISABLED';
+  mfaEnabled: boolean;
+  emailVerifiedAt: string | null;
+  lastLoginAt: string | null;
+  createdAt: string;
+  tenant: AuthProfileTenantDto | null;
+}
+
+export interface UpdateProfileInput {
+  firstName?: string;
+  lastName?: string;
+}
+
+export interface ChangePasswordInput {
+  currentPassword: string;
+  newPassword: string;
+}

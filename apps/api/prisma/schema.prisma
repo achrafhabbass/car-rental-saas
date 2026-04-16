@@ -14,7 +14,7 @@ datasource db {
 }
 
 // ============================================
-// ENUMS
+// ENUMS - System
 // ============================================
 
 enum TenantStatus {
@@ -31,13 +31,18 @@ enum TenantPlan {
   ENTERPRISE
 }
 
+/// Role model for authorization.
+/// SUPER_ADMIN: platform-level (tenantId = null), cross-tenant access
+/// ADMIN: tenant administrator — full control of a single tenant
+/// MANAGER: operations manager — can manage fleet, clients, contracts
+/// EMPLOYEE: front-desk / counter agent — day-to-day operations
+/// ACCOUNTANT: finance — payments, invoices, credits, reports
 enum UserRole {
   SUPER_ADMIN
-  OWNER
+  ADMIN
   MANAGER
-  AGENT
+  EMPLOYEE
   ACCOUNTANT
-  VIEWER
 }
 
 enum UserStatus {
@@ -48,11 +53,213 @@ enum UserStatus {
 }
 
 // ============================================
-// SYSTEM (Platform-level) MODELS
+// ENUMS - Business
 // ============================================
 
-/// Tenant represents a customer organization (rental company).
-/// All tenant-scoped models carry a tenantId FK for isolation.
+enum VehicleStatus {
+  AVAILABLE
+  RENTED
+  MAINTENANCE
+  INACTIVE
+}
+
+enum VehicleTransmission {
+  MANUAL
+  AUTOMATIC
+}
+
+enum VehicleFuel {
+  PETROL
+  DIESEL
+  HYBRID
+  ELECTRIC
+  LPG
+}
+
+enum ClientType {
+  INDIVIDUAL
+  COMPANY
+}
+
+enum ClientSegment {
+  VIP
+  REGULAR
+  OCCASIONAL
+  AT_RISK
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  CONVERTED
+  NO_SHOW
+  OVERDUE
+  COMPLETED
+}
+
+enum ReservationPaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  REFUNDED
+}
+
+enum ReservationSource {
+  DIRECT
+  WEBSITE
+  PHONE
+  PARTNER
+  WALK_IN
+}
+
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  RETURNED
+  COMPLETED
+  CANCELLED
+  OVERDUE
+}
+
+enum InspectionType {
+  DEPARTURE
+  RETURN
+}
+
+enum InspectionStatus {
+  DRAFT
+  COMPLETED
+}
+
+enum FuelLevel {
+  EMPTY
+  QUARTER
+  HALF
+  THREE_QUARTERS
+  FULL
+}
+
+enum VehicleConditionRating {
+  EXCELLENT
+  GOOD
+  FAIR
+  POOR
+}
+
+enum DepositStatus {
+  HELD
+  REFUNDED
+  PARTIAL_REFUND
+  CONSUMED
+}
+
+enum DepositMethod {
+  CASH
+  CHECK
+  CARD
+  CARD_IMPRINT
+  BANK_TRANSFER
+}
+
+enum PaymentMethod {
+  CASH
+  CHECK
+  CARD
+  BANK_TRANSFER
+  ONLINE
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  REFUNDED
+  FAILED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PARTIAL
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum CreditType {
+  BANK_CREDIT
+  LEASING
+}
+
+enum CreditStatus {
+  ACTIVE
+  PAID_OFF
+  DEFAULTED
+}
+
+enum CreditPaymentStatus {
+  SCHEDULED
+  PAID
+  LATE
+  SKIPPED
+}
+
+enum MaintenanceType {
+  OIL_CHANGE
+  REVISION
+  TIRE_CHANGE
+  BRAKES
+  BATTERY
+  INSPECTION
+  REPAIR
+  OTHER
+}
+
+enum MaintenanceStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum AlertType {
+  INSURANCE_EXPIRY
+  TECHNICAL_VISIT_EXPIRY
+  VIGNETTE_EXPIRY
+  MAINTENANCE_DUE
+  MAINTENANCE_OVERDUE
+  CREDIT_PAYMENT_DUE
+  INVOICE_OVERDUE
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum AlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  ARCHIVED
+}
+
+// ============================================
+// SYSTEM MODELS
+// ============================================
+
 model Tenant {
   id                String       @id @default(uuid()) @db.Uuid
   name              String       @db.VarChar(255)
@@ -62,6 +269,17 @@ model Tenant {
   plan              TenantPlan   @default(STARTER)
   billingEmail      String?      @db.VarChar(255)
   phone             String?      @db.VarChar(32)
+  address           String?      @db.VarChar(500)
+  city              String?      @db.VarChar(120)
+  website           String?      @db.VarChar(255)
+  logoUrl           String?      @db.Text
+  taxId             String?      @db.VarChar(64)
+  ice               String?      @db.VarChar(32)
+  rc                String?      @db.VarChar(64)
+  patente           String?      @db.VarChar(64)
+  cnss              String?      @db.VarChar(64)
+  bankName          String?      @db.VarChar(120)
+  bankRib           String?      @db.VarChar(64)
   country           String?      @db.VarChar(8)
   locale            String       @default("fr") @db.VarChar(8)
   timezone          String       @default("Africa/Casablanca") @db.VarChar(64)
@@ -74,16 +292,28 @@ model Tenant {
   updatedAt         DateTime     @updatedAt
   deletedAt         DateTime?
 
-  users             User[]
-  refreshTokens     RefreshToken[]
+  users                User[]
+  refreshTokens        RefreshToken[]
+  vehicles             Vehicle[]
+  clients              Client[]
+  reservations         Reservation[]
+  contracts            RentalContract[]
+  payments             Payment[]
+  invoices             Invoice[]
+  vehicleCredits       VehicleCredit[]
+  creditPayments       VehicleCreditPayment[]
+  maintenanceRecords   MaintenanceRecord[]
+  maintenanceSchedules MaintenanceSchedule[]
+  alerts               Alert[]
+  notifications        Notification[]
+  inspections          VehicleInspection[]
+  deposits             Deposit[]
 
   @@index([status])
   @@index([plan])
   @@map("tenants")
 }
 
-/// User belongs to exactly one Tenant (except SUPER_ADMIN which has tenantId = null).
-/// Email is unique per tenant (compound unique).
 model User {
   id              String     @id @default(uuid()) @db.Uuid
   tenantId        String?    @db.Uuid
@@ -91,7 +321,7 @@ model User {
   passwordHash    String     @db.VarChar(255)
   firstName       String     @db.VarChar(120)
   lastName        String     @db.VarChar(120)
-  role            UserRole   @default(VIEWER)
+  role            UserRole   @default(EMPLOYEE)
   status          UserStatus @default(ACTIVE)
   emailVerifiedAt DateTime?
   mfaEnabled      Boolean    @default(false)
@@ -102,8 +332,10 @@ model User {
   updatedAt       DateTime   @updatedAt
   deletedAt       DateTime?
 
-  tenant          Tenant?        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  refreshTokens   RefreshToken[]
+  tenant        Tenant?          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  refreshTokens RefreshToken[]
+  createdContracts RentalContract[] @relation("CreatedByUser")
+  notifications Notification[]
 
   @@unique([tenantId, email], name: "tenant_email_unique")
   @@index([tenantId])
@@ -112,25 +344,572 @@ model User {
   @@map("users")
 }
 
-/// Refresh tokens are opaque and hashed at rest.
-/// Rotation + revocation supported via revokedAt and replacedById.
 model RefreshToken {
-  id             String    @id @default(uuid()) @db.Uuid
-  userId         String    @db.Uuid
-  tenantId       String?   @db.Uuid
-  tokenHash      String    @unique @db.VarChar(255)
-  userAgent      String?   @db.VarChar(512)
-  ipAddress      String?   @db.VarChar(64)
-  expiresAt      DateTime
-  revokedAt      DateTime?
-  replacedById   String?   @db.Uuid
-  createdAt      DateTime  @default(now())
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @db.Uuid
+  tenantId     String?   @db.Uuid
+  tokenHash    String    @unique @db.VarChar(255)
+  userAgent    String?   @db.VarChar(512)
+  ipAddress    String?   @db.VarChar(64)
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  replacedById String?   @db.Uuid
+  createdAt    DateTime  @default(now())
 
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant         Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([tenantId])
   @@index([expiresAt])
   @@map("refresh_tokens")
+}
+
+// ============================================
+// BUSINESS MODELS - Phase 1
+// ============================================
+
+/// Vehicle: a car in the tenant's fleet.
+model Vehicle {
+  id                   String              @id @default(uuid()) @db.Uuid
+  tenantId             String              @db.Uuid
+  registration         String              @db.VarChar(32)
+  brand                String              @db.VarChar(100)
+  model                String              @db.VarChar(100)
+  year                 Int
+  color                String?             @db.VarChar(64)
+  category             String?             @db.VarChar(64)
+  vin                  String?             @db.VarChar(32)
+  transmission         VehicleTransmission @default(MANUAL)
+  fuel                 VehicleFuel         @default(PETROL)
+  seats                Int                 @default(5)
+  status               VehicleStatus       @default(AVAILABLE)
+  currentKm            Int                 @default(0)
+  purchaseDate         DateTime?           @db.Date
+  purchasePrice        Decimal?            @db.Decimal(12, 2)
+  dailyRate            Decimal             @db.Decimal(10, 2)
+  weeklyRate           Decimal?            @db.Decimal(10, 2)
+  monthlyRate          Decimal?            @db.Decimal(10, 2)
+  insuranceExpiry      DateTime?           @db.Date
+  technicalVisitExpiry DateTime?           @db.Date
+  vignetteExpiry       DateTime?           @db.Date
+  photos               String[]            @default([])
+  notes                String?             @db.Text
+  metadata             Json?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  deletedAt            DateTime?
+
+  tenant              Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  reservations        Reservation[]
+  contracts           RentalContract[]
+  credits             VehicleCredit[]
+  maintenanceRecords  MaintenanceRecord[]
+  maintenanceSchedules MaintenanceSchedule[]
+  alerts              Alert[]
+  inspections         VehicleInspection[]
+
+  @@unique([tenantId, registration])
+  @@index([tenantId])
+  @@index([status])
+  @@index([tenantId, status])
+  @@map("vehicles")
+}
+
+/// Client: individual or company renting vehicles.
+model Client {
+  id             String         @id @default(uuid()) @db.Uuid
+  tenantId       String         @db.Uuid
+  type           ClientType     @default(INDIVIDUAL)
+  fullName       String         @db.VarChar(255)
+  companyName    String?        @db.VarChar(255)
+  idNumber       String         @db.VarChar(64)
+  idType         String?        @db.VarChar(32) // CIN, PASSPORT, RC
+  licenseNumber  String?        @db.VarChar(64)
+  licenseExpiry  DateTime?      @db.Date
+  dateOfBirth    DateTime?      @db.Date
+  nationality    String?        @db.VarChar(64)
+  phone          String?        @db.VarChar(32)
+  email          String?        @db.VarChar(255)
+  addressLine1   String?        @db.VarChar(255)
+  addressLine2   String?        @db.VarChar(255)
+  city           String?        @db.VarChar(120)
+  country        String?        @db.VarChar(64)
+  blacklisted    Boolean        @default(false)
+  blacklistReason String?       @db.Text
+  rating         Decimal        @default(0) @db.Decimal(2, 1)
+  segment        ClientSegment  @default(REGULAR)
+  notes          String?        @db.Text
+  metadata       Json?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  deletedAt      DateTime?
+
+  tenant       Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  reservations Reservation[]
+  contracts    RentalContract[]
+  payments     Payment[]
+  invoices     Invoice[]
+  deposits     Deposit[]
+
+  @@unique([tenantId, idNumber])
+  @@index([tenantId])
+  @@index([tenantId, blacklisted])
+  @@index([email])
+  @@map("clients")
+}
+
+/// Reservation: a planned rental that may later convert into a contract.
+model Reservation {
+  id              String             @id @default(uuid()) @db.Uuid
+  tenantId        String             @db.Uuid
+  reservationCode String             @db.VarChar(32)
+  vehicleId       String             @db.Uuid
+  clientId        String             @db.Uuid
+  startDate       DateTime
+  endDate         DateTime
+  pickupLocation  String?            @db.VarChar(255)
+  returnLocation  String?            @db.VarChar(255)
+  dailyRate       Decimal            @db.Decimal(10, 2)
+  totalAmount     Decimal            @db.Decimal(12, 2)
+  status          ReservationStatus        @default(PENDING)
+  paymentStatus   ReservationPaymentStatus @default(PENDING)
+  source          ReservationSource        @default(DIRECT)
+  notes           String?                  @db.Text
+  metadata        Json?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  cancelledAt     DateTime?
+  convertedAt     DateTime?
+  overdueSince    DateTime?
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+  client  Client  @relation(fields: [clientId], references: [id])
+  contract RentalContract?
+
+  @@unique([tenantId, reservationCode])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([vehicleId, startDate, endDate])
+  @@index([clientId])
+  @@map("reservations")
+}
+
+/// RentalContract: the active rental agreement tied to a vehicle + client.
+model RentalContract {
+  id                String         @id @default(uuid()) @db.Uuid
+  tenantId          String         @db.Uuid
+  contractNumber    String         @db.VarChar(32)
+  vehicleId         String         @db.Uuid
+  clientId          String         @db.Uuid
+  reservationId     String?        @unique @db.Uuid
+  createdByUserId   String?        @db.Uuid
+  startDate         DateTime
+  endDate           DateTime
+  actualReturnDate  DateTime?
+  kmStart           Int
+  kmEnd             Int?
+  kmAllowance       Int?           // daily km allowance; null = unlimited
+  dailyRate         Decimal        @db.Decimal(10, 2)
+  totalAmount       Decimal        @db.Decimal(12, 2)
+  depositAmount     Decimal        @default(0) @db.Decimal(12, 2)
+  depositMethod     DepositMethod?
+  depositReference  String?        @db.VarChar(128)
+  extraCharges      Decimal        @default(0) @db.Decimal(12, 2)
+  discountAmount    Decimal        @default(0) @db.Decimal(12, 2)
+  pickupLocation    String?        @db.VarChar(255)
+  returnLocation    String?        @db.VarChar(255)
+  additionalDriver  String?        @db.VarChar(255)
+  additionalDriverLicense String?  @db.VarChar(64)
+  status            ContractStatus @default(DRAFT)
+  signatureUrl      String?        @db.VarChar(512)
+  signedAt          DateTime?
+  notes             String?        @db.Text
+  metadata          Json?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vehicle     Vehicle      @relation(fields: [vehicleId], references: [id])
+  client      Client       @relation(fields: [clientId], references: [id])
+  reservation Reservation? @relation(fields: [reservationId], references: [id])
+  createdBy   User?        @relation("CreatedByUser", fields: [createdByUserId], references: [id])
+  payments    Payment[]
+  invoices    Invoice[]
+  inspections VehicleInspection[]
+  deposit     Deposit?
+
+  @@unique([tenantId, contractNumber])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([vehicleId, startDate, endDate])
+  @@index([clientId])
+  @@map("rental_contracts")
+}
+
+// ============================================
+// BUSINESS MODELS - Phase 2 (Financial)
+// ============================================
+
+/// Payment: money received from a client, optionally tied to a contract/invoice.
+model Payment {
+  id            String        @id @default(uuid()) @db.Uuid
+  tenantId      String        @db.Uuid
+  paymentCode   String        @db.VarChar(32)
+  contractId    String?       @db.Uuid
+  invoiceId     String?       @db.Uuid
+  clientId      String        @db.Uuid
+  amount        Decimal       @db.Decimal(12, 2)
+  method        PaymentMethod @default(CASH)
+  reference     String?       @db.VarChar(128)
+  paidAt        DateTime      @default(now())
+  status        PaymentStatus @default(CONFIRMED)
+  notes         String?       @db.Text
+  metadata      Json?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  tenant   Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contract RentalContract? @relation(fields: [contractId], references: [id])
+  invoice  Invoice?        @relation(fields: [invoiceId], references: [id])
+  client   Client          @relation(fields: [clientId], references: [id])
+
+  @@unique([tenantId, paymentCode])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([contractId])
+  @@index([invoiceId])
+  @@index([clientId])
+  @@index([paidAt])
+  @@map("payments")
+}
+
+/// Invoice: issued to a client, usually tied to a contract. TVA tracked at invoice level.
+model Invoice {
+  id             String        @id @default(uuid()) @db.Uuid
+  tenantId       String        @db.Uuid
+  invoiceNumber  String        @db.VarChar(32)
+  contractId     String?       @db.Uuid
+  clientId       String        @db.Uuid
+  issueDate      DateTime      @default(now()) @db.Date
+  dueDate        DateTime?     @db.Date
+  subtotal       Decimal       @db.Decimal(12, 2)
+  taxRate        Decimal       @default(20) @db.Decimal(5, 2)
+  taxAmount      Decimal       @db.Decimal(12, 2)
+  total          Decimal       @db.Decimal(12, 2)
+  amountPaid     Decimal       @default(0) @db.Decimal(12, 2)
+  balance        Decimal       @db.Decimal(12, 2)
+  status         InvoiceStatus @default(DRAFT)
+  paidAt         DateTime?
+  lineItems      Json          @default("[]")
+  notes          String?       @db.Text
+  metadata       Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  tenant   Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contract RentalContract? @relation(fields: [contractId], references: [id])
+  client   Client          @relation(fields: [clientId], references: [id])
+  payments Payment[]
+
+  @@unique([tenantId, invoiceNumber])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([contractId])
+  @@index([clientId])
+  @@index([dueDate])
+  @@map("invoices")
+}
+
+/// VehicleCredit: bank credit or leasing agreement for financing a vehicle.
+model VehicleCredit {
+  id                String       @id @default(uuid()) @db.Uuid
+  tenantId          String       @db.Uuid
+  vehicleId         String       @db.Uuid
+  bankName          String       @db.VarChar(255)
+  accountNumber     String?      @db.VarChar(64)
+  creditType        CreditType   @default(BANK_CREDIT)
+  principal         Decimal      @db.Decimal(12, 2)
+  downPayment       Decimal      @default(0) @db.Decimal(12, 2)
+  interestRate      Decimal      @db.Decimal(5, 2)
+  termMonths        Int
+  monthlyPayment    Decimal      @db.Decimal(10, 2)
+  residualValue     Decimal?     @db.Decimal(12, 2)
+  startDate         DateTime     @db.Date
+  endDate           DateTime     @db.Date
+  remainingBalance  Decimal      @db.Decimal(12, 2)
+  totalPaid         Decimal      @default(0) @db.Decimal(12, 2)
+  status            CreditStatus @default(ACTIVE)
+  notes             String?      @db.Text
+  metadata          Json?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  tenant   Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vehicle  Vehicle                @relation(fields: [vehicleId], references: [id])
+  payments VehicleCreditPayment[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([vehicleId])
+  @@map("vehicle_credits")
+}
+
+/// VehicleCreditPayment: one row per month of the amortization schedule.
+model VehicleCreditPayment {
+  id                String              @id @default(uuid()) @db.Uuid
+  tenantId          String              @db.Uuid
+  creditId          String              @db.Uuid
+  installmentNumber Int
+  scheduledDate     DateTime            @db.Date
+  scheduledAmount   Decimal             @db.Decimal(10, 2)
+  principalPortion  Decimal             @db.Decimal(10, 2)
+  interestPortion   Decimal             @db.Decimal(10, 2)
+  paidAt            DateTime?
+  paidAmount        Decimal?            @db.Decimal(10, 2)
+  reference         String?             @db.VarChar(128)
+  status            CreditPaymentStatus @default(SCHEDULED)
+  notes             String?             @db.Text
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  tenant Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  credit VehicleCredit @relation(fields: [creditId], references: [id], onDelete: Cascade)
+
+  @@unique([creditId, installmentNumber])
+  @@index([tenantId])
+  @@index([creditId])
+  @@index([scheduledDate])
+  @@index([status])
+  @@map("vehicle_credit_payments")
+}
+
+// ============================================
+// BUSINESS MODELS - Phase 3 (Maintenance & Alerts)
+// ============================================
+
+/// MaintenanceRecord: a completed maintenance event on a vehicle.
+model MaintenanceRecord {
+  id          String            @id @default(uuid()) @db.Uuid
+  tenantId    String            @db.Uuid
+  vehicleId   String            @db.Uuid
+  type        MaintenanceType
+  status      MaintenanceStatus @default(COMPLETED)
+  title       String            @db.VarChar(255)
+  description String?           @db.Text
+  performedAt DateTime          @default(now())
+  km          Int?
+  cost        Decimal           @default(0) @db.Decimal(12, 2)
+  garage      String?           @db.VarChar(255)
+  reference   String?           @db.VarChar(128)
+  notes       String?           @db.Text
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, vehicleId])
+  @@index([performedAt])
+  @@index([type])
+  @@map("maintenance_records")
+}
+
+/// MaintenanceSchedule: a planned or due maintenance on a vehicle.
+/// When dueDate < now or dueKm < vehicle.currentKm, the schedule is overdue.
+model MaintenanceSchedule {
+  id          String            @id @default(uuid()) @db.Uuid
+  tenantId    String            @db.Uuid
+  vehicleId   String            @db.Uuid
+  type        MaintenanceType
+  status      MaintenanceStatus @default(SCHEDULED)
+  title       String            @db.VarChar(255)
+  description String?           @db.Text
+  dueDate     DateTime?         @db.Date
+  dueKm       Int?
+  isCritical  Boolean           @default(false)
+  completedAt DateTime?
+  completedRecordId String?     @db.Uuid
+  notes       String?           @db.Text
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, vehicleId, status])
+  @@index([dueDate])
+  @@index([isCritical])
+  @@map("maintenance_schedules")
+}
+
+/// Alert: a denormalized, deduplicated warning about something needing attention.
+/// One open alert per (tenant, type, target) — upserts on resync.
+model Alert {
+  id              String        @id @default(uuid()) @db.Uuid
+  tenantId        String        @db.Uuid
+  type            AlertType
+  severity        AlertSeverity @default(WARNING)
+  status          AlertStatus   @default(OPEN)
+  title           String        @db.VarChar(255)
+  message         String        @db.Text
+  vehicleId       String?       @db.Uuid
+  contractId      String?       @db.Uuid
+  invoiceId       String?       @db.Uuid
+  creditId        String?       @db.Uuid
+  scheduleId      String?       @db.Uuid
+  dueAt           DateTime?
+  acknowledgedAt  DateTime?
+  resolvedAt      DateTime?
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vehicle       Vehicle?       @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  notifications Notification[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, severity])
+  @@index([type])
+  @@index([dueAt])
+  @@map("alerts")
+}
+
+/// Notification: in-app (or emailed/SMS in the future) notification delivered
+/// to a specific user, or to all users in a tenant (userId = null).
+model Notification {
+  id        String              @id @default(uuid()) @db.Uuid
+  tenantId  String              @db.Uuid
+  userId    String?             @db.Uuid
+  channel   NotificationChannel @default(IN_APP)
+  status    NotificationStatus  @default(UNREAD)
+  title     String              @db.VarChar(255)
+  body      String              @db.Text
+  link      String?             @db.VarChar(512)
+  alertId   String?             @db.Uuid
+  metadata  Json?
+  readAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alert  Alert? @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, userId, status])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ============================================
+// BUSINESS MODELS - Phase 8 (Inspection & Deposit)
+// ============================================
+
+/// VehicleInspection: state-of-vehicle snapshot at the start (DEPARTURE)
+/// or at the end (RETURN) of a rental contract.
+/// Compound unique on (contractId, type) ensures at most one of each per contract.
+model VehicleInspection {
+  id            String                  @id @default(uuid()) @db.Uuid
+  tenantId      String                  @db.Uuid
+  vehicleId     String                  @db.Uuid
+  contractId    String                  @db.Uuid
+  type          InspectionType
+  status        InspectionStatus        @default(COMPLETED)
+  performedAt   DateTime                @default(now())
+  km            Int
+  fuelLevel     FuelLevel               @default(FULL)
+  condition     VehicleConditionRating  @default(GOOD)
+  damages       String?                 @db.Text
+  photos        String[]                @default([])
+  agentName     String?                 @db.VarChar(255)
+  signatureUrl  String?                 @db.VarChar(512)
+  notes         String?                 @db.Text
+  metadata      Json?
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+
+  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vehicle  Vehicle        @relation(fields: [vehicleId], references: [id])
+  contract RentalContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@unique([contractId, type])
+  @@index([tenantId])
+  @@index([tenantId, vehicleId])
+  @@index([performedAt])
+  @@map("vehicle_inspections")
+}
+
+/// Deposit (caution): security deposit collected on a rental contract.
+/// Lifecycle: HELD → REFUNDED | PARTIAL_REFUND | CONSUMED.
+/// One-to-one with RentalContract.
+model Deposit {
+  id              String        @id @default(uuid()) @db.Uuid
+  tenantId        String        @db.Uuid
+  depositNumber   String        @db.VarChar(32)
+  contractId      String        @unique @db.Uuid
+  clientId        String        @db.Uuid
+  amount          Decimal       @db.Decimal(12, 2)
+  method          DepositMethod
+  reference       String?       @db.VarChar(128)
+  refundedAmount  Decimal       @default(0) @db.Decimal(12, 2)
+  consumedAmount  Decimal       @default(0) @db.Decimal(12, 2)
+  status          DepositStatus @default(HELD)
+  collectedAt     DateTime      @default(now())
+  settledAt       DateTime?
+  settledByUserId String?       @db.Uuid
+  notes           String?       @db.Text
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contract RentalContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  client   Client         @relation(fields: [clientId], references: [id])
+
+  @@unique([tenantId, depositNumber])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([clientId])
+  @@map("deposits")
+}
+
+// ============================================
+// SYSTEM MODELS — Phase 10 (Platform audit)
+// ============================================
+
+enum PlatformAuditAction {
+  IMPERSONATE
+  TENANT_UPDATE
+  TENANT_SUSPEND
+  TENANT_ACTIVATE
+  TENANT_CANCEL
+  TENANT_DELETE
+  TENANT_EXTEND_TRIAL
+  TENANT_EXTEND_SUBSCRIPTION
+  SWEEP_EXPIRIES
+}
+
+/// Append-only log of every SUPER_ADMIN-initiated platform-level action.
+/// Tenant-scoped business actions are NOT logged here; this is the
+/// SaaS-owner audit trail (who impersonated, suspended, deleted, etc.).
+model PlatformAuditLog {
+  id          String              @id @default(uuid()) @db.Uuid
+  action      PlatformAuditAction
+  actorUserId String?             @db.Uuid
+  tenantId    String?             @db.Uuid
+  metadata    Json?
+  ipAddress   String?             @db.VarChar(64)
+  userAgent   String?             @db.VarChar(512)
+  createdAt   DateTime            @default(now())
+
+  @@index([action])
+  @@index([actorUserId])
+  @@index([tenantId])
+  @@index([createdAt])
+  @@map("platform_audit_logs")
 }

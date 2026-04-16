@@ -37,4 +37,18 @@ export class UsersRepository {
       orderBy: { createdAt: 'desc' },
     });
   }
+
+  updateProfile(
+    id: string,
+    data: Pick<Prisma.UserUpdateInput, 'firstName' | 'lastName'>,
+  ): Promise<User> {
+    return this.prisma.user.update({ where: { id }, data });
+  }
+
+  updatePasswordHash(id: string, passwordHash: string): Promise<User> {
+    return this.prisma.user.update({
+      where: { id },
+      data: { passwordHash },
+    });
+  }
 }
