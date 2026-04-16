@@ -986,6 +986,33 @@ model EmailLog {
   @@map("email_logs")
 }
 
+enum LeadStatus {
+  NEW
+  CONTACTED
+  DEMO_SCHEDULED
+  CONVERTED
+  LOST
+}
+
+model DemoRequest {
+  id          String     @id @default(uuid()) @db.Uuid
+  fullName    String     @db.VarChar(255)
+  email       String     @db.VarChar(255)
+  phone       String?    @db.VarChar(32)
+  companyName String?    @db.VarChar(255)
+  preferredDate DateTime? @db.Date
+  message     String?    @db.VarChar(1000)
+  status      LeadStatus @default(NEW)
+  source      String     @default("website") @db.VarChar(32)
+  notes       String?    @db.VarChar(1000)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("demo_requests")
+}
+
 /// Append-only log of every SUPER_ADMIN-initiated platform-level action.
 /// Tenant-scoped business actions are NOT logged here; this is the
 /// SaaS-owner audit trail (who impersonated, suspended, deleted, etc.).

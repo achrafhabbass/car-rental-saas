@@ -23,6 +23,7 @@ import { DepositsModule } from './modules/deposits/deposits.module';
 import { HealthModule } from './modules/health/health.module';
 import { InspectionsModule } from './modules/inspections/inspections.module';
 import { InvoicesModule } from './modules/invoices/invoices.module';
+import { LeadsModule } from './modules/leads/leads.module';
 import { MailModule } from './modules/mail/mail.module';
 import { MaintenanceModule } from './modules/maintenance/maintenance.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
@@ -90,6 +91,7 @@ import { PrismaModule } from './prisma/prisma.module';
     BackupModule,
     BillingModule,
     SoftDeleteModule,
+    LeadsModule,
   ],
   providers: [
     TenantMiddleware,
