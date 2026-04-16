@@ -90,6 +90,7 @@ const PLATFORM_ITEMS: NavItem[] = [
   { href: '/platform/tenants', label: 'Tenants', icon: Users },
   { href: '/platform/billing', label: 'Facturation', icon: CreditCard },
   { href: '/platform/audit', label: "Journal d'audit", icon: ScrollText },
+  { href: '/platform/system', label: 'Système', icon: Settings },
 ];
 
 function CountBadge({ count, tone }: { count: number; tone: 'red' | 'amber' | 'blue' }) {

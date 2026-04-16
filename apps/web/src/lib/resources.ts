@@ -144,6 +144,37 @@ export const archiveApi = {
     api.post<void>(`/archive/${entity}/${id}/restore`),
 };
 
+// -------- System / Backups (SUPER_ADMIN) --------
+
+export const systemApi = {
+  backupSummary: () =>
+    api.get<{
+      lastBackupAt: string | null;
+      lastStatus: 'SUCCESS' | 'FAILED' | null;
+      totalSizeKb: number;
+      totalCount: number;
+      byCategory: Record<string, number>;
+      retentionDays: number;
+    }>('/platform/system/backups/summary'),
+  backupList: (category?: string) =>
+    api.get<Array<{
+      filename: string;
+      category: string;
+      sizeKb: number;
+      sha256: string;
+      status: string;
+      createdAt: string;
+    }>>(`/platform/system/backups${qs(category ? { category } : {})}`),
+  backupLog: () =>
+    api.get<{ log: string }>('/platform/system/backups/log'),
+  runFullBackup: () =>
+    api.post<unknown>('/platform/system/backups/run'),
+  runCategoryBackup: (cat: string) =>
+    api.post<unknown>(`/platform/system/backups/run/${cat}`),
+  restoreDatabase: (filename: string) =>
+    api.post<{ message: string }>(`/platform/system/backups/restore/database/${filename}`),
+};
+
 export const tenantSelfApi = {
   get: () => api.get<TenantDto>('/tenants/me'),
   update: (body: UpdateTenantSelfBody) => api.patch<TenantDto>('/tenants/me', body),
