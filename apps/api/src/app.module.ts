@@ -14,6 +14,7 @@ import { AlertsModule } from './modules/alerts/alerts.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BackupModule } from './modules/backup/backup.module';
+import { BillingModule } from './modules/billing/billing.module';
 import { ClientsModule } from './modules/clients/clients.module';
 import { ContractsModule } from './modules/contracts/contracts.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
@@ -86,6 +87,7 @@ import { PrismaModule } from './prisma/prisma.module';
     DashboardModule,
     MailModule,
     BackupModule,
+    BillingModule,
   ],
   providers: [
     TenantMiddleware,

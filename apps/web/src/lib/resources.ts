@@ -2,6 +2,7 @@ import type {
   AlertDto,
   AlertSummaryDto,
   AuthProfileDto,
+  BillingSummaryDto,
   CalendarRow,
   CollectDepositInput,
   CreateInspectionInput,
@@ -43,11 +44,14 @@ import type {
   NotificationSummaryDto,
   PaginatedResult,
   PaginationQuery,
+  PlanDefinitionDto,
   PaymentDto,
   RecordCreditPaymentInput,
+  RecordSubscriptionPaymentInput,
   RegisterRequest,
   RentalContractDto,
   ReservationDto,
+  SubscriptionPaymentDto,
   UpdateClientInput,
   UpdateVehicleInput,
   VehicleCreditDto,
@@ -105,6 +109,21 @@ export interface UpdateTenantSelfBody {
   bankName?: string;
   bankRib?: string;
 }
+
+// -------- Billing (SUPER_ADMIN) --------
+
+export const billingApi = {
+  plans: () =>
+    api.get<PlanDefinitionDto[]>('/platform/billing/plans'),
+  summary: () =>
+    api.get<BillingSummaryDto>('/platform/billing/summary'),
+  payments: (limit = 50) =>
+    api.get<SubscriptionPaymentDto[]>(`/platform/billing/payments${qs({ limit })}`),
+  tenantPayments: (tenantId: string) =>
+    api.get<SubscriptionPaymentDto[]>(`/platform/billing/payments/${tenantId}`),
+  recordPayment: (tenantId: string, body: RecordSubscriptionPaymentInput) =>
+    api.post<SubscriptionPaymentDto>(`/platform/billing/pay/${tenantId}`, body),
+};
 
 export const tenantSelfApi = {
   get: () => api.get<TenantDto>('/tenants/me'),

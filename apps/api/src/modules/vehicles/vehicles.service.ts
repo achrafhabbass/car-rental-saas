@@ -12,6 +12,7 @@ import {
 } from '../../common/dto/pagination.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AlertsService } from '../alerts/alerts.service';
+import { BillingService } from '../billing/billing.service';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 import { ListVehiclesDto } from './dto/list-vehicles.dto';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto';
@@ -23,6 +24,7 @@ export class VehiclesService {
     private readonly repo: VehiclesRepository,
     private readonly alerts: AlertsService,
     private readonly prisma: PrismaService,
+    private readonly billing: BillingService,
   ) {}
 
   async list(tenantId: string, dto: ListVehiclesDto): Promise<PaginatedResult<Vehicle>> {
@@ -49,6 +51,13 @@ export class VehiclesService {
   }
 
   async create(tenantId: string, dto: CreateVehicleDto): Promise<Vehicle> {
+    // Enforce plan vehicle limit
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
+    if (tenant) {
+      const limitMsg = await this.billing.checkLimits(tenantId, tenant.plan, 'vehicles');
+      if (limitMsg) throw new ConflictException(limitMsg);
+    }
+
     const existing = await this.repo.findByRegistration(tenantId, dto.registration);
     if (existing) {
       throw new ConflictException(

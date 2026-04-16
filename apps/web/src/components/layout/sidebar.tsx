@@ -88,6 +88,7 @@ const SECTIONS: NavSection[] = [
 const PLATFORM_ITEMS: NavItem[] = [
   { href: '/platform', label: 'Vue plateforme', icon: ShieldCheck },
   { href: '/platform/tenants', label: 'Tenants', icon: Users },
+  { href: '/platform/billing', label: 'Facturation', icon: CreditCard },
   { href: '/platform/audit', label: "Journal d'audit", icon: ScrollText },
 ];
 
