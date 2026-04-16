@@ -18,6 +18,7 @@ import {
   SuspendTenantDto,
   UpdateTenantPlatformDto,
 } from './dto/update-tenant.dto';
+import { NotificationService } from '../mail/notification.service';
 import { PlatformAuditService } from './platform-audit.service';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -64,6 +65,7 @@ export class PlatformService {
     private readonly prisma: PrismaService,
     private readonly audit: PlatformAuditService,
     private readonly authService: AuthService,
+    private readonly mailNotifications: NotificationService,
   ) {}
 
   /// Issues a fresh set of tokens for the target tenant's ADMIN user so a
@@ -362,12 +364,20 @@ export class PlatformService {
     return this.prisma.tenant.update({ where: { id }, data: patch });
   }
 
-  suspend(id: string, dto: SuspendTenantDto): Promise<Tenant> {
-    return this.transition(id, 'SUSPENDED', dto.reason);
+  async suspend(id: string, dto: SuspendTenantDto): Promise<Tenant> {
+    const result = await this.transition(id, 'SUSPENDED', dto.reason);
+    void this.mailNotifications.onAccountSuspended(id, dto.reason);
+    return result;
   }
 
-  activate(id: string): Promise<Tenant> {
-    return this.transition(id, 'ACTIVE');
+  async activate(id: string): Promise<Tenant> {
+    const result = await this.transition(id, 'ACTIVE');
+    void this.mailNotifications.onAccountReactivated(
+      id,
+      result.plan,
+      result.subscriptionEnd?.toLocaleDateString('fr-FR') ?? '—',
+    );
+    return result;
   }
 
   cancel(id: string, dto: SuspendTenantDto): Promise<Tenant> {

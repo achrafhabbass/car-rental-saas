@@ -57,6 +57,14 @@ export class OverdueReservationsSweeper {
       this.logger.log(
         `Tenant subscription sweep: ${result.count} tenant(s) marked EXPIRED`,
       );
+      // Notify newly-expired tenants
+      const expiredTenants = await this.prisma.tenant.findMany({
+        where: { status: 'EXPIRED', deletedAt: null },
+        select: { id: true },
+      });
+      for (const t of expiredTenants) {
+        void this.mailNotifications.onSubscriptionExpired(t.id);
+      }
     }
     return { expired: result.count };
   }

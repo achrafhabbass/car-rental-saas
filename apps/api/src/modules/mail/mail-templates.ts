@@ -1,12 +1,15 @@
 /**
  * HTML email templates for AutoSphere notifications.
- * Each returns a { subject, html } ready to pass to MailService.send().
+ * Each returns a { subject, html, category } ready for MailService.send().
  */
 
 const BRAND = '#1B3A6B';
 const ACCENT = '#2563EB';
+const SUCCESS_CLR = '#10B981';
+const DANGER = '#EF4444';
+const WARNING = '#F59E0B';
 
-function layout(title: string, body: string): string {
+function layout(title: string, body: string, accentColor = BRAND): string {
   return `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -19,9 +22,9 @@ function layout(title: string, body: string): string {
 <tr><td align="center">
 <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
   <tr>
-    <td style="background:${BRAND};padding:24px 32px;">
+    <td style="background:${accentColor};padding:24px 32px;">
       <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;">AutoSphere</h1>
-      <p style="margin:4px 0 0;color:#cbd5e1;font-size:12px;text-transform:uppercase;letter-spacing:1px;">
+      <p style="margin:4px 0 0;color:rgba(255,255,255,0.7);font-size:12px;text-transform:uppercase;letter-spacing:1px;">
         ${title}
       </p>
     </td>
@@ -57,11 +60,11 @@ function table(rows: string): string {
   return `<table cellpadding="0" cellspacing="0" style="width:100%;margin:16px 0;">${rows}</table>`;
 }
 
-function btn(text: string, href = '#'): string {
-  return `<a href="${href}" style="display:inline-block;margin-top:16px;padding:10px 24px;background:${ACCENT};color:#fff;font-size:13px;font-weight:600;text-decoration:none;border-radius:6px;">${text}</a>`;
+function badge(text: string, color: string): string {
+  return `<span style="display:inline-block;padding:4px 12px;border-radius:12px;background:${color};color:#fff;font-size:12px;font-weight:600;">${text}</span>`;
 }
 
-// ──────────────────── Templates ────────────────────
+// ────────────── BUSINESS ──────────────
 
 export function reservationCreated(data: {
   code: string;
@@ -73,20 +76,20 @@ export function reservationCreated(data: {
 }) {
   return {
     subject: `Réservation ${data.code} confirmée`,
+    category: 'reservation',
     html: layout(
       'Nouvelle réservation',
       `<p style="color:#0f172a;font-size:15px;margin:0 0 8px;">
-        Bonjour, une nouvelle réservation a été créée.
+        Une nouvelle réservation a été créée.
       </p>
       ${table(
         kv('N° Réservation', data.code) +
-          kv('Client', data.clientName) +
-          kv('Véhicule', data.vehicle) +
-          kv('Début', data.startDate) +
-          kv('Fin', data.endDate) +
-          kv('Total', data.total),
-      )}
-      ${btn('Voir la réservation')}`,
+        kv('Client', data.clientName) +
+        kv('Véhicule', data.vehicle) +
+        kv('Début', data.startDate) +
+        kv('Fin', data.endDate) +
+        kv('Total', data.total),
+      )}`,
     ),
   };
 }
@@ -101,6 +104,7 @@ export function contractCreated(data: {
 }) {
   return {
     subject: `Contrat ${data.number} créé`,
+    category: 'contract',
     html: layout(
       'Nouveau contrat de location',
       `<p style="color:#0f172a;font-size:15px;margin:0 0 8px;">
@@ -108,13 +112,12 @@ export function contractCreated(data: {
       </p>
       ${table(
         kv('N° Contrat', data.number) +
-          kv('Client', data.clientName) +
-          kv('Véhicule', data.vehicle) +
-          kv('Début', data.startDate) +
-          kv('Fin', data.endDate) +
-          kv('Total', data.total),
-      )}
-      ${btn('Voir le contrat')}`,
+        kv('Client', data.clientName) +
+        kv('Véhicule', data.vehicle) +
+        kv('Début', data.startDate) +
+        kv('Fin', data.endDate) +
+        kv('Total', data.total),
+      )}`,
     ),
   };
 }
@@ -128,17 +131,18 @@ export function paymentReceived(data: {
 }) {
   return {
     subject: `Paiement reçu — ${data.amount}`,
+    category: 'payment',
     html: layout(
       'Paiement reçu',
       `<p style="color:#0f172a;font-size:15px;margin:0 0 8px;">
-        Un paiement a été enregistré.
+        Un paiement a été enregistré. ${badge('PAYÉ', SUCCESS_CLR)}
       </p>
       ${table(
         kv('Facture', data.invoiceNumber) +
-          kv('Client', data.clientName) +
-          kv('Montant', data.amount) +
-          kv('Mode', data.method) +
-          kv('Date', data.date),
+        kv('Client', data.clientName) +
+        kv('Montant', data.amount) +
+        kv('Mode', data.method) +
+        kv('Date', data.date),
       )}`,
     ),
   };
@@ -152,20 +156,74 @@ export function maintenanceAlert(data: {
 }) {
   return {
     subject: `Alerte maintenance — ${data.vehicle}`,
+    category: 'maintenance',
     html: layout(
       'Alerte maintenance',
       `<p style="color:#0f172a;font-size:15px;margin:0 0 8px;">
-        Une maintenance requiert votre attention.
+        ${badge('MAINTENANCE', WARNING)} Une maintenance requiert votre attention.
       </p>
       ${table(
         kv('Véhicule', data.vehicle) +
-          kv('Type', data.type) +
-          kv('Description', data.description) +
-          kv('Échéance', data.dueDate),
-      )}
-      <p style="color:#ef4444;font-size:13px;margin-top:12px;font-weight:600;">
-        Action requise : planifier cette intervention rapidement.
-      </p>`,
+        kv('Type', data.type) +
+        kv('Description', data.description) +
+        kv('Échéance', data.dueDate),
+      )}`,
+      WARNING,
+    ),
+  };
+}
+
+// ────────────── BILLING / SUBSCRIPTION ──────────────
+
+export function invoiceGenerated(data: {
+  invoiceNumber: string;
+  tenantName: string;
+  plan: string;
+  amountHt: string;
+  totalTtc: string;
+  period: string;
+}) {
+  return {
+    subject: `Facture ${data.invoiceNumber} générée`,
+    category: 'billing',
+    html: layout(
+      'Facture d\'abonnement',
+      `<p style="color:#0f172a;font-size:15px;margin:0 0 8px;">
+        Une nouvelle facture d'abonnement a été générée.
+      </p>
+      ${table(
+        kv('N° Facture', data.invoiceNumber) +
+        kv('Entreprise', data.tenantName) +
+        kv('Plan', data.plan) +
+        kv('Période', data.period) +
+        kv('Montant HT', data.amountHt) +
+        kv('Total TTC', data.totalTtc),
+      )}`,
+    ),
+  };
+}
+
+export function receiptGenerated(data: {
+  receiptNumber: string;
+  tenantName: string;
+  amount: string;
+  method: string;
+}) {
+  return {
+    subject: `Reçu ${data.receiptNumber} — ${data.amount}`,
+    category: 'billing',
+    html: layout(
+      'Reçu de paiement',
+      `<p style="color:#0f172a;font-size:15px;margin:0 0 8px;">
+        ${badge('PAYÉ', SUCCESS_CLR)} Votre paiement a été confirmé.
+      </p>
+      ${table(
+        kv('N° Reçu', data.receiptNumber) +
+        kv('Entreprise', data.tenantName) +
+        kv('Montant', data.amount) +
+        kv('Mode', data.method),
+      )}`,
+      SUCCESS_CLR,
     ),
   };
 }
@@ -176,24 +234,177 @@ export function subscriptionExpiring(data: {
   expiresAt: string;
   daysLeft: number;
 }) {
-  const urgencyColor = data.daysLeft <= 3 ? '#ef4444' : data.daysLeft <= 7 ? '#f59e0b' : '#64748b';
+  const color = data.daysLeft <= 3 ? DANGER : WARNING;
   return {
     subject: `Abonnement ${data.tenantName} expire dans ${data.daysLeft} jour(s)`,
+    category: 'subscription',
     html: layout(
       'Expiration abonnement',
       `<p style="color:#0f172a;font-size:15px;margin:0 0 8px;">
-        L'abonnement de votre entreprise arrive à expiration.
+        ${badge(`${data.daysLeft}j restants`, color)}
       </p>
       ${table(
         kv('Entreprise', data.tenantName) +
-          kv('Plan', data.plan) +
-          kv('Expire le', data.expiresAt) +
-          kv('Jours restants', `<span style="color:${urgencyColor};font-weight:700;">${data.daysLeft}</span>`),
+        kv('Plan', data.plan) +
+        kv('Expire le', data.expiresAt) +
+        kv('Jours restants', `<strong style="color:${color};">${data.daysLeft}</strong>`),
       )}
       <p style="color:#64748b;font-size:13px;margin-top:12px;">
-        Contactez votre administrateur pour renouveler votre abonnement
-        et éviter toute interruption de service.
+        Renouvelez votre abonnement pour éviter toute interruption de service.
       </p>`,
+      color,
+    ),
+  };
+}
+
+export function subscriptionExpired(data: {
+  tenantName: string;
+  plan: string;
+  expiredAt: string;
+}) {
+  return {
+    subject: `Abonnement ${data.tenantName} expiré`,
+    category: 'subscription',
+    html: layout(
+      'Abonnement expiré',
+      `<p style="color:#0f172a;font-size:15px;margin:0 0 8px;">
+        ${badge('EXPIRÉ', DANGER)} L'abonnement a expiré.
+      </p>
+      ${table(
+        kv('Entreprise', data.tenantName) +
+        kv('Plan', data.plan) +
+        kv('Expiré le', data.expiredAt),
+      )}
+      <p style="color:#ef4444;font-size:13px;font-weight:600;margin-top:12px;">
+        Les utilisateurs ne peuvent plus se connecter. Contactez l'administrateur pour renouveler.
+      </p>`,
+      DANGER,
+    ),
+  };
+}
+
+export function accountSuspended(data: {
+  tenantName: string;
+  reason?: string;
+}) {
+  return {
+    subject: `Compte ${data.tenantName} suspendu`,
+    category: 'subscription',
+    html: layout(
+      'Compte suspendu',
+      `<p style="color:#0f172a;font-size:15px;margin:0 0 8px;">
+        ${badge('SUSPENDU', DANGER)} Le compte a été suspendu.
+      </p>
+      ${table(
+        kv('Entreprise', data.tenantName) +
+        kv('Motif', data.reason || 'Non spécifié'),
+      )}
+      <p style="color:#64748b;font-size:13px;margin-top:12px;">
+        L'accès est temporairement bloqué. Contactez le support pour plus d'informations.
+      </p>`,
+      DANGER,
+    ),
+  };
+}
+
+export function accountReactivated(data: {
+  tenantName: string;
+  plan: string;
+  newEndDate: string;
+}) {
+  return {
+    subject: `Compte ${data.tenantName} réactivé`,
+    category: 'subscription',
+    html: layout(
+      'Compte réactivé',
+      `<p style="color:#0f172a;font-size:15px;margin:0 0 8px;">
+        ${badge('ACTIF', SUCCESS_CLR)} Le compte a été réactivé avec succès.
+      </p>
+      ${table(
+        kv('Entreprise', data.tenantName) +
+        kv('Plan', data.plan) +
+        kv('Actif jusqu\'au', data.newEndDate),
+      )}
+      <p style="color:#10b981;font-size:13px;font-weight:600;margin-top:12px;">
+        Tous les utilisateurs peuvent désormais se connecter normalement.
+      </p>`,
+      SUCCESS_CLR,
+    ),
+  };
+}
+
+// ────────────── SYSTEM ──────────────
+
+export function backupFailed(data: {
+  category: string;
+  filename: string;
+  error: string;
+  date: string;
+}) {
+  return {
+    subject: `ALERTE — Backup ${data.category} échoué`,
+    category: 'system',
+    html: layout(
+      'Échec de sauvegarde',
+      `<p style="color:#0f172a;font-size:15px;margin:0 0 8px;">
+        ${badge('ÉCHEC', DANGER)} Une sauvegarde automatique a échoué.
+      </p>
+      ${table(
+        kv('Catégorie', data.category) +
+        kv('Fichier', data.filename) +
+        kv('Erreur', `<span style="color:${DANGER};">${data.error}</span>`) +
+        kv('Date', data.date),
+      )}
+      <p style="color:#ef4444;font-size:13px;font-weight:600;margin-top:12px;">
+        Action requise : vérifiez la configuration et relancez manuellement la sauvegarde.
+      </p>`,
+      DANGER,
+    ),
+  };
+}
+
+export function restoreCompleted(data: {
+  category: string;
+  filename: string;
+  date: string;
+}) {
+  return {
+    subject: `Restauration ${data.category} effectuée`,
+    category: 'system',
+    html: layout(
+      'Restauration effectuée',
+      `<p style="color:#0f172a;font-size:15px;margin:0 0 8px;">
+        ${badge('RESTAURÉ', ACCENT)} Une restauration a été effectuée.
+      </p>
+      ${table(
+        kv('Catégorie', data.category) +
+        kv('Fichier source', data.filename) +
+        kv('Date', data.date),
+      )}`,
+      ACCENT,
+    ),
+  };
+}
+
+export function criticalError(data: {
+  service: string;
+  error: string;
+  date: string;
+}) {
+  return {
+    subject: `ERREUR CRITIQUE — ${data.service}`,
+    category: 'system',
+    html: layout(
+      'Erreur critique',
+      `<p style="color:#0f172a;font-size:15px;margin:0 0 8px;">
+        ${badge('CRITIQUE', DANGER)} Une erreur critique nécessite une intervention immédiate.
+      </p>
+      ${table(
+        kv('Service', data.service) +
+        kv('Erreur', `<span style="color:${DANGER};">${data.error}</span>`) +
+        kv('Date', data.date),
+      )}`,
+      DANGER,
     ),
   };
 }

@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
+import { NotificationService } from '../mail/notification.service';
 import { createHash } from 'crypto';
 import { execSync } from 'child_process';
 import {
@@ -55,7 +56,10 @@ export class BackupService {
   private readonly dbUrl: string;
   private readonly logFile: string;
 
-  constructor(private readonly config: ConfigService) {
+  constructor(
+    private readonly config: ConfigService,
+    private readonly mailNotifications: NotificationService,
+  ) {
     this.rootDir = resolve(config.get<string>('backup.dir', './backups'));
     this.retentionDays = config.get<number>('backup.retentionDays', 30);
     this.dbUrl = config.get<string>('database.url', '');
@@ -121,6 +125,7 @@ export class BackupService {
     } catch (err) {
       this.appendLog(`FAIL  DATABASE  ${filename}  ${(err as Error).message}`);
       this.logger.error(`Database backup failed: ${(err as Error).message}`);
+      void this.mailNotifications.onBackupFailed('database', filename, (err as Error).message);
       return {
         filename,
         category: 'database',
@@ -163,6 +168,7 @@ export class BackupService {
     } catch (err) {
       this.appendLog(`FAIL  FILES  ${filename}  ${(err as Error).message}`);
       this.logger.error(`Files backup failed: ${(err as Error).message}`);
+      void this.mailNotifications.onBackupFailed('files', filename, (err as Error).message);
       return {
         filename,
         category: 'files',
@@ -225,6 +231,7 @@ export class BackupService {
     } catch (err) {
       this.appendLog(`FAIL  LOGS  ${filename}  ${(err as Error).message}`);
       this.logger.error(`Logs backup failed: ${(err as Error).message}`);
+      void this.mailNotifications.onBackupFailed('logs', filename, (err as Error).message);
       return {
         filename,
         category: 'logs',
@@ -260,6 +267,7 @@ export class BackupService {
     });
     this.appendLog(`RESTORE  DATABASE  ${filename}  OK`);
     this.logger.log(`Database restored from ${filename}`);
+    void this.mailNotifications.onRestoreCompleted('database', filename);
   }
 
   async restoreFiles(filename: string): Promise<void> {

@@ -173,6 +173,23 @@ export const systemApi = {
     api.post<unknown>(`/platform/system/backups/run/${cat}`),
   restoreDatabase: (filename: string) =>
     api.post<{ message: string }>(`/platform/system/backups/restore/database/${filename}`),
+  // Email monitoring
+  emailStats: () =>
+    api.get<{ total: number; success: number; failed: number; dryRun: number; last24h: number }>(
+      '/platform/system/email/stats',
+    ),
+  emailLogs: (limit = 50) =>
+    api.get<Array<{
+      id: string;
+      to: string;
+      subject: string;
+      status: string;
+      error: string | null;
+      category: string;
+      createdAt: string;
+    }>>(`/platform/system/email/logs${qs({ limit })}`),
+  sendTestEmail: (to: string) =>
+    api.post<{ status: string; message: string }>('/platform/system/email/test', { to }),
 };
 
 export const tenantSelfApi = {

@@ -118,11 +118,38 @@ export class BillingService {
 
     if (wasExpiredOrSuspended) {
       this.logger.log(`Tenant ${tenant.name} reactivated from ${tenant.status}`);
+      void this.notifications.onAccountReactivated(
+        tenantId,
+        plan.name,
+        endDate.toLocaleDateString('fr-FR'),
+      );
     }
 
-    // Auto-generate invoice + receipt
-    void this.createInvoice(payment.id, tenantId, Number(payment.amount));
-    void this.createReceipt(payment.id, tenantId, dto);
+    // Auto-generate invoice + receipt + email notifications
+    void this.createInvoice(payment.id, tenantId, Number(payment.amount)).then(
+      (inv) =>
+        void this.notifications.onInvoiceGenerated({
+          invoiceNumber: inv.invoiceNumber,
+          tenantName: tenant.name,
+          email: tenant.billingEmail ?? '',
+          plan: plan.name,
+          amountHt: `${Number(inv.amount).toFixed(2)} MAD`,
+          totalTtc: `${Number(inv.totalTtc).toFixed(2)} MAD`,
+          period: dto.period === 'ANNUAL' ? 'Annuel' : 'Mensuel',
+          tenantId,
+        }),
+    );
+    void this.createReceipt(payment.id, tenantId, dto).then(
+      (rcp) =>
+        void this.notifications.onReceiptGenerated({
+          receiptNumber: rcp.receiptNumber,
+          tenantName: tenant.name,
+          email: tenant.billingEmail ?? '',
+          amount: `${Number(rcp.amount).toFixed(2)} MAD`,
+          method: rcp.method,
+          tenantId,
+        }),
+    );
 
     return payment;
   }
