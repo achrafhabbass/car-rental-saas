@@ -5,8 +5,10 @@ import type { Response } from 'express';
 import { AllowNoTenant } from '../../common/decorators/allow-no-tenant.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { SkipEnvelope } from '../../common/decorators/skip-envelope.decorator';
+import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
 import { BillingService } from './billing.service';
 import { RecordSubscriptionPaymentDto } from './dto/record-payment.dto';
+import { PlanLimitService } from './plan-limit.service';
 
 /**
  * Subscription billing endpoints — SUPER_ADMIN only.
@@ -16,7 +18,10 @@ import { RecordSubscriptionPaymentDto } from './dto/record-payment.dto';
 @AllowNoTenant()
 @Roles('SUPER_ADMIN')
 export class BillingController {
-  constructor(private readonly billing: BillingService) {}
+  constructor(
+    private readonly billing: BillingService,
+    private readonly planLimits: PlanLimitService,
+  ) {}
 
   @Get('plans')
   getPlans() {

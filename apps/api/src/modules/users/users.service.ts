@@ -10,7 +10,7 @@ import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 
 import { NotificationService } from '../mail/notification.service';
-import { BillingService } from '../billing/billing.service';
+import { PlanLimitService } from '../billing/plan-limit.service';
 import { UsersRepository } from './users.repository';
 import type { CreateUserDto } from './dto/create-user.dto';
 import type { UpdateUserDto } from './dto/update-user.dto';
@@ -22,7 +22,7 @@ export class UsersService {
   constructor(
     private readonly repo: UsersRepository,
     private readonly notifications: NotificationService,
-    private readonly billing: BillingService,
+    private readonly planLimits: PlanLimitService,
   ) {}
 
   findById(id: string): Promise<User | null> {
@@ -49,12 +49,8 @@ export class UsersService {
     tenantId: string,
     dto: CreateUserDto,
   ): Promise<User & { tempPassword?: string }> {
-    // Check plan limits
-    const tenant = await this.repo.findTenant(tenantId);
-    if (tenant) {
-      const limitMsg = await this.billing.checkLimits(tenantId, tenant.plan, 'users');
-      if (limitMsg) throw new ConflictException(limitMsg);
-    }
+    // Enforce plan user limit (throws PlanLimitExceededException)
+    await this.planLimits.enforce(tenantId, 'users');
 
     // Check email uniqueness within tenant
     const existing = await this.repo.findByEmail(dto.email, tenantId);

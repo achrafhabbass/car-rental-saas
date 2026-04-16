@@ -45,6 +45,24 @@ export class HttpExceptionFilter implements ExceptionFilter {
       this.logger.warn(`[${request.method}] ${request.url} → ${status} ${error}`);
     }
 
+    // For structured errors (e.g. PLAN_LIMIT_EXCEEDED), pass through
+    // extra fields so the frontend gets resource/current/limit/plan/upgrade.
+    if (exception instanceof HttpException) {
+      const res = exception.getResponse();
+      if (typeof res === 'object' && res !== null && 'error' in res) {
+        const structured = res as Record<string, unknown>;
+        if (structured.error === 'PLAN_LIMIT_EXCEEDED') {
+          response.status(status).json({
+            ...structured,
+            statusCode: status,
+            path: request.url,
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+      }
+    }
+
     response.status(status).json(body);
   }
 

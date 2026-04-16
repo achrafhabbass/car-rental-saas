@@ -12,6 +12,7 @@ import {
   paginate,
 } from '../../common/dto/pagination.dto';
 import { AlertsService } from '../alerts/alerts.service';
+import { PlanLimitService } from '../billing/plan-limit.service';
 import { ClientsService } from '../clients/clients.service';
 import { NotificationService } from '../mail/notification.service';
 import { ContractsService } from '../contracts/contracts.service';
@@ -32,6 +33,7 @@ export class ReservationsService {
     private readonly alerts: AlertsService,
     private readonly contractsService: ContractsService,
     private readonly notifications: NotificationService,
+    private readonly planLimits: PlanLimitService,
   ) {}
 
   async list(
@@ -66,6 +68,8 @@ export class ReservationsService {
   }
 
   async create(tenantId: string, dto: CreateReservationDto): Promise<Reservation> {
+    await this.planLimits.enforce(tenantId, 'reservations');
+
     const start = new Date(dto.startDate);
     const end = new Date(dto.endDate);
     if (!(end > start)) {
