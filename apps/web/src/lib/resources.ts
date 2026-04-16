@@ -87,6 +87,30 @@ export const authApi = {
     api.post<void>('/auth/change-password', body),
 };
 
+// -------- Tenant self-service --------
+
+export interface UpdateTenantSelfBody {
+  name?: string;
+  phone?: string;
+  billingEmail?: string;
+  address?: string;
+  city?: string;
+  website?: string;
+  logoUrl?: string;
+  taxId?: string;
+  ice?: string;
+  rc?: string;
+  patente?: string;
+  cnss?: string;
+  bankName?: string;
+  bankRib?: string;
+}
+
+export const tenantSelfApi = {
+  get: () => api.get<TenantDto>('/tenants/me'),
+  update: (body: UpdateTenantSelfBody) => api.patch<TenantDto>('/tenants/me', body),
+};
+
 // -------- Vehicles --------
 
 export interface ListVehiclesQuery extends PaginationQuery {

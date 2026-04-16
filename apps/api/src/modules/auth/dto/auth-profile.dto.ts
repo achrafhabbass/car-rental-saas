@@ -6,6 +6,19 @@ export interface AuthProfileTenantDto {
   slug: string;
   status: string;
   plan: string | null;
+  phone: string | null;
+  billingEmail: string | null;
+  address: string | null;
+  city: string | null;
+  website: string | null;
+  logoUrl: string | null;
+  taxId: string | null;
+  ice: string | null;
+  rc: string | null;
+  patente: string | null;
+  cnss: string | null;
+  bankName: string | null;
+  bankRib: string | null;
 }
 
 export interface AuthProfileDto {
@@ -46,6 +59,19 @@ export function toAuthProfile(
           slug: tenant.slug,
           status: tenant.status,
           plan: tenant.plan ?? null,
+          phone: tenant.phone ?? null,
+          billingEmail: tenant.billingEmail ?? null,
+          address: tenant.address ?? null,
+          city: tenant.city ?? null,
+          website: tenant.website ?? null,
+          logoUrl: tenant.logoUrl ?? null,
+          taxId: tenant.taxId ?? null,
+          ice: tenant.ice ?? null,
+          rc: tenant.rc ?? null,
+          patente: tenant.patente ?? null,
+          cnss: tenant.cnss ?? null,
+          bankName: tenant.bankName ?? null,
+          bankRib: tenant.bankRib ?? null,
         }
       : null,
   };

@@ -20,4 +20,50 @@ export class TenantsService {
     if (!tenant) throw new NotFoundException(`Tenant ${id} not found`);
     return tenant;
   }
+
+  async updateSelf(
+    id: string,
+    data: Partial<
+      Record<
+        | 'name'
+        | 'phone'
+        | 'billingEmail'
+        | 'address'
+        | 'city'
+        | 'website'
+        | 'logoUrl'
+        | 'taxId'
+        | 'ice'
+        | 'rc'
+        | 'patente'
+        | 'cnss'
+        | 'bankName'
+        | 'bankRib',
+        string
+      >
+    >,
+  ): Promise<Tenant> {
+    await this.getByIdOrFail(id);
+    const patch: Record<string, string | null> = {};
+    const nullable: Array<keyof typeof data> = [
+      'phone',
+      'billingEmail',
+      'address',
+      'city',
+      'website',
+      'logoUrl',
+      'taxId',
+      'ice',
+      'rc',
+      'patente',
+      'cnss',
+      'bankName',
+      'bankRib',
+    ];
+    if (data.name !== undefined) patch.name = data.name;
+    for (const k of nullable) {
+      if (data[k] !== undefined) patch[k as string] = data[k] || null;
+    }
+    return this.repo.update(id, patch);
+  }
 }

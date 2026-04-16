@@ -44,6 +44,36 @@ export interface AuthProfileTenantDto {
   slug: string;
   status: string;
   plan: string | null;
+  phone: string | null;
+  billingEmail: string | null;
+  address: string | null;
+  city: string | null;
+  website: string | null;
+  logoUrl: string | null;
+  taxId: string | null;
+  ice: string | null;
+  rc: string | null;
+  patente: string | null;
+  cnss: string | null;
+  bankName: string | null;
+  bankRib: string | null;
+}
+
+export interface UpdateTenantSelfInput {
+  name?: string;
+  phone?: string;
+  billingEmail?: string;
+  address?: string;
+  city?: string;
+  website?: string;
+  logoUrl?: string;
+  taxId?: string;
+  ice?: string;
+  rc?: string;
+  patente?: string;
+  cnss?: string;
+  bankName?: string;
+  bankRib?: string;
 }
 
 export interface AuthProfileDto {

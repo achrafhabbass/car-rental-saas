@@ -13,6 +13,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
+import { CompanySettings } from '@/components/settings/company-settings';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -212,46 +213,7 @@ export default function SettingsPage() {
         </aside>
 
         <div className="space-y-6">
-          {section === 'company' && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-primary-500" />
-                  Informations de l'entreprise
-                </CardTitle>
-                {user.tenant && <Badge tone="blue">{user.tenant.status}</Badge>}
-              </CardHeader>
-              <CardBody className="space-y-5">
-                {user.tenant ? (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Field label="Nom de l'entreprise" htmlFor="cName">
-                        <Input id="cName" value={user.tenant.name} readOnly />
-                      </Field>
-                      <Field label="Identifiant (slug)" htmlFor="cSlug">
-                        <Input id="cSlug" value={user.tenant.slug} readOnly />
-                      </Field>
-                      <Field label="Plan" htmlFor="cPlan">
-                        <Input id="cPlan" value={user.tenant.plan ?? '—'} readOnly />
-                      </Field>
-                      <Field label="Statut" htmlFor="cStatus">
-                        <Input id="cStatus" value={user.tenant.status} readOnly />
-                      </Field>
-                    </div>
-                    <div className="rounded-lg bg-primary-50/60 border border-primary-100 p-3.5 text-xs text-primary-700">
-                      La modification des informations de l'entreprise est gérée par
-                      l'administrateur de la plateforme. Contactez le support si une mise à
-                      jour est nécessaire.
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-sm text-slate-500">
-                    Aucune entreprise rattachée à votre compte (super-administrateur).
-                  </p>
-                )}
-              </CardBody>
-            </Card>
-          )}
+          {section === 'company' && <CompanySettings />}
 
           {section === 'profile' && (
             <Card>
