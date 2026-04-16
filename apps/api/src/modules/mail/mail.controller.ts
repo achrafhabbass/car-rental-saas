@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { IsEmail } from 'class-validator';
 
 import { AllowNoTenant } from '../../common/decorators/allow-no-tenant.decorator';
@@ -10,6 +11,7 @@ class TestEmailDto {
   to!: string;
 }
 
+@ApiTags('Email')
 @Controller('platform/system/email')
 @AllowNoTenant()
 @Roles('SUPER_ADMIN')

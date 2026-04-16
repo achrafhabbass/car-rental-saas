@@ -1,4 +1,5 @@
 import { Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 
 import { AllowNoTenant } from '../../common/decorators/allow-no-tenant.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -15,6 +16,7 @@ import {
  *
  * Accessible at /platform/system/backups to match the monitoring convention.
  */
+@ApiTags('Backup')
 @Controller('platform/system/backups')
 @AllowNoTenant()
 @Roles('SUPER_ADMIN')

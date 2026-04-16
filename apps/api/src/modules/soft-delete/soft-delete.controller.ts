@@ -1,4 +1,5 @@
 import { Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -16,6 +17,7 @@ import {
  *   POST   /archive/:entity/:id/restore → restore
  *   GET    /archive/:entity       → list deleted items
  */
+@ApiTags('Archive')
 @Controller('archive')
 @Roles('ADMIN', 'MANAGER')
 export class SoftDeleteController {

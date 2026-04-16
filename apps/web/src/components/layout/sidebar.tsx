@@ -81,7 +81,10 @@ const SECTIONS: NavSection[] = [
   },
   {
     title: 'Système',
-    items: [{ href: '/settings', label: 'Paramètres', icon: Settings }],
+    items: [
+      { href: '/team', label: 'Équipe', icon: Users },
+      { href: '/settings', label: 'Paramètres', icon: Settings },
+    ],
   },
 ];
 

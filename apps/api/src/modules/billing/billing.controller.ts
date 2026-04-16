@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Header, Param, Post, Query, Res } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 
 import { AllowNoTenant } from '../../common/decorators/allow-no-tenant.decorator';
@@ -10,6 +11,7 @@ import { RecordSubscriptionPaymentDto } from './dto/record-payment.dto';
 /**
  * Subscription billing endpoints — SUPER_ADMIN only.
  */
+@ApiTags('Billing')
 @Controller('platform/billing')
 @AllowNoTenant()
 @Roles('SUPER_ADMIN')

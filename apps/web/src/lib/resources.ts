@@ -55,6 +55,7 @@ import type {
   ReservationDto,
   SubscriptionPaymentDto,
   UpdateClientInput,
+  UserDto,
   UpdateVehicleInput,
   VehicleCreditDto,
   VehicleDto,
@@ -111,6 +112,19 @@ export interface UpdateTenantSelfBody {
   bankName?: string;
   bankRib?: string;
 }
+
+// -------- Users (Team Management) --------
+
+export const usersApi = {
+  list: () => api.get<UserDto[]>('/users'),
+  create: (body: { email: string; firstName: string; lastName: string; role: string; password?: string }) =>
+    api.post<UserDto & { tempPassword?: string }>('/users', body),
+  update: (id: string, body: { firstName?: string; lastName?: string; role?: string; status?: string }) =>
+    api.patch<UserDto>(`/users/${id}`, body),
+  delete: (id: string) => api.delete<void>(`/users/${id}`),
+  restore: (id: string) => api.post<UserDto>(`/users/${id}/restore`),
+  resetPassword: (id: string) => api.post<{ newPassword: string }>(`/users/${id}/reset-password`),
+};
 
 // -------- Billing (SUPER_ADMIN) --------
 

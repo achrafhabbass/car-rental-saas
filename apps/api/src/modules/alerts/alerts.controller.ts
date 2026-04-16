@@ -8,12 +8,14 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { AlertSeverity, AlertStatus } from '@prisma/client';
 
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AlertsService } from './alerts.service';
 
+@ApiTags('Alerts')
 @Controller('alerts')
 export class AlertsController {
   constructor(private readonly alerts: AlertsService) {}

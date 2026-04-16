@@ -12,6 +12,7 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { PlatformAuditAction } from '@prisma/client';
 import type { Request } from 'express';
 
@@ -37,6 +38,7 @@ import { PlatformService } from './platform.service';
  * Every mutating route records an entry in PlatformAuditLog through
  * PlatformAuditService after the underlying service call succeeds.
  */
+@ApiTags('Platform')
 @Controller('platform')
 @Roles('SUPER_ADMIN')
 @AllowNoTenant()

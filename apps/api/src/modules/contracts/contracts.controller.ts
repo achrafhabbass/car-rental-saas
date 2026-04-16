@@ -11,6 +11,7 @@ import {
   Query,
   Res,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
@@ -26,6 +27,7 @@ import { CompleteContractDto } from './dto/complete-contract.dto';
 import { CreateContractDto } from './dto/create-contract.dto';
 import { ListContractsDto } from './dto/list-contracts.dto';
 
+@ApiTags('Contracts')
 @Controller('contracts')
 export class ContractsController {
   constructor(

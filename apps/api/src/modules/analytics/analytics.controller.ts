@@ -5,6 +5,7 @@ import {
   Query,
   Res,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
@@ -12,6 +13,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { SkipEnvelope } from '../../common/decorators/skip-envelope.decorator';
 import { AnalyticsService } from './analytics.service';
 
+@ApiTags('Analytics')
 @Controller('analytics')
 export class AnalyticsController {
   constructor(private readonly analytics: AnalyticsService) {}

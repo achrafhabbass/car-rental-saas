@@ -12,6 +12,7 @@ import {
   Query,
   Res,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
@@ -26,6 +27,7 @@ import { ListVehiclesDto } from './dto/list-vehicles.dto';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto';
 import { VehiclesService } from './vehicles.service';
 
+@ApiTags('Vehicles')
 @Controller('vehicles')
 export class VehiclesController {
   constructor(

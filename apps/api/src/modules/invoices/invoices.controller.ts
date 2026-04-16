@@ -10,6 +10,7 @@ import {
   Query,
   Res,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
@@ -22,6 +23,7 @@ import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { ListInvoicesDto } from './dto/list-invoices.dto';
 import { InvoicesService } from './invoices.service';
 
+@ApiTags('Invoices')
 @Controller('invoices')
 export class InvoicesController {
   constructor(

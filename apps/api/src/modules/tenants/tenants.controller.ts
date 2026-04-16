@@ -6,6 +6,7 @@ import {
   NotFoundException,
   Patch,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -17,6 +18,7 @@ import { TenantsService } from './tenants.service';
  * Tenant self-service endpoints scoped to the authenticated user's tenant.
  * Only ADMIN of the tenant may mutate.
  */
+@ApiTags('Tenants')
 @Controller('tenants')
 export class TenantsController {
   constructor(private readonly service: TenantsService) {}

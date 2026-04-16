@@ -9,6 +9,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -18,6 +19,7 @@ import { CollectDepositDto } from './dto/collect-deposit.dto';
 import { SettleDepositDto } from './dto/settle-deposit.dto';
 import { DepositsService } from './deposits.service';
 
+@ApiTags('Deposits')
 @Controller('deposits')
 export class DepositsController {
   constructor(private readonly deposits: DepositsService) {}
