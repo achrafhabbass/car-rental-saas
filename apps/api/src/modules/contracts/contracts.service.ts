@@ -12,6 +12,7 @@ import {
   paginate,
 } from '../../common/dto/pagination.dto';
 import { AlertsService } from '../alerts/alerts.service';
+import { PlanLimitService } from '../billing/plan-limit.service';
 import { ClientsService } from '../clients/clients.service';
 import { NotificationService } from '../mail/notification.service';
 import { buildContractPdf } from './contract-pdf';
@@ -33,6 +34,7 @@ export class ContractsService {
     private readonly clients: ClientsService,
     private readonly alerts: AlertsService,
     private readonly notifications: NotificationService,
+    private readonly planLimits: PlanLimitService,
   ) {}
 
   async list(
@@ -67,6 +69,8 @@ export class ContractsService {
     userId: string | null,
     dto: CreateContractDto,
   ): Promise<RentalContract> {
+    await this.planLimits.enforce(tenantId, 'contracts');
+
     const start = new Date(dto.startDate);
     const end = new Date(dto.endDate);
     if (!(end > start)) {

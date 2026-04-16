@@ -5,12 +5,26 @@ import { session } from './session';
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001/api/v1';
 
 export class ApiError extends Error {
+  /** Set to 'PLAN_LIMIT_EXCEEDED' when the error is a plan quota violation. */
+  public readonly errorCode: string | undefined;
+  /** Extra payload for structured errors (e.g. resource, current, limit, plan, upgrade). */
+  public readonly extra: Record<string, unknown> | undefined;
+
   constructor(
     public readonly status: number,
     public readonly body: ApiErrorEnvelope,
   ) {
     super(Array.isArray(body.message) ? body.message.join(', ') : body.message);
     this.name = 'ApiError';
+    const raw = body as unknown as Record<string, unknown>;
+    if (raw.error === 'PLAN_LIMIT_EXCEEDED') {
+      this.errorCode = 'PLAN_LIMIT_EXCEEDED';
+      this.extra = raw;
+    }
+  }
+
+  get isPlanLimit(): boolean {
+    return this.errorCode === 'PLAN_LIMIT_EXCEEDED';
   }
 }
 
