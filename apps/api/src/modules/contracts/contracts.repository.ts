@@ -9,7 +9,7 @@ export class ContractsRepository {
 
   findById(tenantId: string, id: string): Promise<RentalContract | null> {
     return this.prisma.rentalContract.findFirst({
-      where: { id, tenantId },
+      where: { id, tenantId, deletedAt: null },
       include: { vehicle: true, client: true },
     });
   }
@@ -21,7 +21,7 @@ export class ContractsRepository {
     take: number,
     orderBy?: Prisma.RentalContractOrderByWithRelationInput,
   ): Promise<[RentalContract[], number]> {
-    const full: Prisma.RentalContractWhereInput = { ...where, tenantId };
+    const full: Prisma.RentalContractWhereInput = { ...where, tenantId, deletedAt: null };
     return Promise.all([
       this.prisma.rentalContract.findMany({
         where: full,

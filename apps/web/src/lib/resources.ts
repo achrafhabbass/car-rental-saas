@@ -2,6 +2,7 @@ import type {
   AlertDto,
   AlertSummaryDto,
   AuthProfileDto,
+  BillingSummaryDto,
   CalendarRow,
   CollectDepositInput,
   CreateInspectionInput,
@@ -43,12 +44,18 @@ import type {
   NotificationSummaryDto,
   PaginatedResult,
   PaginationQuery,
+  PlanDefinitionDto,
   PaymentDto,
   RecordCreditPaymentInput,
+  RecordSubscriptionPaymentInput,
   RegisterRequest,
+  SubscriptionInvoiceDto,
+  SubscriptionReceiptDto,
   RentalContractDto,
   ReservationDto,
+  SubscriptionPaymentDto,
   UpdateClientInput,
+  UserDto,
   UpdateVehicleInput,
   VehicleCreditDto,
   VehicleDto,
@@ -105,6 +112,99 @@ export interface UpdateTenantSelfBody {
   bankName?: string;
   bankRib?: string;
 }
+
+// -------- Users (Team Management) --------
+
+export const usersApi = {
+  list: () => api.get<UserDto[]>('/users'),
+  create: (body: { email: string; firstName: string; lastName: string; role: string; password?: string }) =>
+    api.post<UserDto & { tempPassword?: string }>('/users', body),
+  update: (id: string, body: { firstName?: string; lastName?: string; role?: string; status?: string }) =>
+    api.patch<UserDto>(`/users/${id}`, body),
+  delete: (id: string) => api.delete<void>(`/users/${id}`),
+  restore: (id: string) => api.post<UserDto>(`/users/${id}/restore`),
+  resetPassword: (id: string) => api.post<{ newPassword: string }>(`/users/${id}/reset-password`),
+};
+
+// -------- Billing (SUPER_ADMIN) --------
+
+export const billingApi = {
+  plans: () =>
+    api.get<PlanDefinitionDto[]>('/platform/billing/plans'),
+  summary: () =>
+    api.get<BillingSummaryDto>('/platform/billing/summary'),
+  payments: (limit = 50) =>
+    api.get<SubscriptionPaymentDto[]>(`/platform/billing/payments${qs({ limit })}`),
+  tenantPayments: (tenantId: string) =>
+    api.get<SubscriptionPaymentDto[]>(`/platform/billing/payments/${tenantId}`),
+  recordPayment: (tenantId: string, body: RecordSubscriptionPaymentInput) =>
+    api.post<SubscriptionPaymentDto>(`/platform/billing/pay/${tenantId}`, body),
+  invoices: (limit = 50) =>
+    api.get<SubscriptionInvoiceDto[]>(`/platform/billing/invoices${qs({ limit })}`),
+  invoicePdfPath: (id: string) => `/platform/billing/invoices/${id}/pdf`,
+  receipts: (limit = 50) =>
+    api.get<SubscriptionReceiptDto[]>(`/platform/billing/receipts${qs({ limit })}`),
+  receiptPdfPath: (id: string) => `/platform/billing/receipts/${id}/pdf`,
+};
+
+// -------- Archive (soft delete / restore) --------
+
+export const archiveApi = {
+  listDeleted: (entity: string) =>
+    api.get<Array<{ id: string; deletedAt: string; label: string }>>(`/archive/${entity}`),
+  softDelete: (entity: string, id: string) =>
+    api.delete<void>(`/archive/${entity}/${id}`),
+  restore: (entity: string, id: string) =>
+    api.post<void>(`/archive/${entity}/${id}/restore`),
+};
+
+// -------- System / Backups (SUPER_ADMIN) --------
+
+export const systemApi = {
+  backupSummary: () =>
+    api.get<{
+      lastBackupAt: string | null;
+      lastStatus: 'SUCCESS' | 'FAILED' | null;
+      totalSizeKb: number;
+      totalCount: number;
+      byCategory: Record<string, number>;
+      retentionDays: number;
+    }>('/platform/system/backups/summary'),
+  backupList: (category?: string) =>
+    api.get<Array<{
+      filename: string;
+      category: string;
+      sizeKb: number;
+      sha256: string;
+      status: string;
+      createdAt: string;
+    }>>(`/platform/system/backups${qs(category ? { category } : {})}`),
+  backupLog: () =>
+    api.get<{ log: string }>('/platform/system/backups/log'),
+  runFullBackup: () =>
+    api.post<unknown>('/platform/system/backups/run'),
+  runCategoryBackup: (cat: string) =>
+    api.post<unknown>(`/platform/system/backups/run/${cat}`),
+  restoreDatabase: (filename: string) =>
+    api.post<{ message: string }>(`/platform/system/backups/restore/database/${filename}`),
+  // Email monitoring
+  emailStats: () =>
+    api.get<{ total: number; success: number; failed: number; dryRun: number; last24h: number }>(
+      '/platform/system/email/stats',
+    ),
+  emailLogs: (limit = 50) =>
+    api.get<Array<{
+      id: string;
+      to: string;
+      subject: string;
+      status: string;
+      error: string | null;
+      category: string;
+      createdAt: string;
+    }>>(`/platform/system/email/logs${qs({ limit })}`),
+  sendTestEmail: (to: string) =>
+    api.post<{ status: string; message: string }>('/platform/system/email/test', { to }),
+};
 
 export const tenantSelfApi = {
   get: () => api.get<TenantDto>('/tenants/me'),
@@ -323,6 +423,8 @@ export const analyticsApi = {
     api.get<VehiclePerformanceDto[]>(`/analytics/fleet/performance${qs({ limit })}`),
   topClients: (limit = 10) =>
     api.get<ClientPerformanceDto[]>(`/analytics/clients/top${qs({ limit })}`),
+  reservationsSeries: (weeks = 12) =>
+    api.get<Array<{ week: string; count: number }>>(`/analytics/reservations/series${qs({ weeks })}`),
   /// Returns a CSV export URL ready for use with <a href download>.
   /// The Authorization header can't be set on an anchor download, so the caller
   /// should fetch the blob with the auth-enabled client and build an object URL.

@@ -10,6 +10,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -23,6 +24,7 @@ import { UpdateReservationDto } from './dto/update-reservation.dto';
 import { OverdueReservationsSweeper } from './overdue.sweeper';
 import { ReservationsService } from './reservations.service';
 
+@ApiTags('Reservations')
 @Controller('reservations')
 export class ReservationsController {
   constructor(

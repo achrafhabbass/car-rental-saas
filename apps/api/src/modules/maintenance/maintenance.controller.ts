@@ -10,6 +10,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -18,6 +19,7 @@ import { CreateMaintenanceScheduleDto } from './dto/create-schedule.dto';
 import { ListMaintenanceRecordsDto } from './dto/list-records.dto';
 import { MaintenanceService } from './maintenance.service';
 
+@ApiTags('Maintenance')
 @Controller('maintenance')
 export class MaintenanceController {
   constructor(private readonly service: MaintenanceService) {}

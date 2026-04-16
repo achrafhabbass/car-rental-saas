@@ -308,10 +308,82 @@ model Tenant {
   notifications        Notification[]
   inspections          VehicleInspection[]
   deposits             Deposit[]
+  subscriptionPayments SubscriptionPayment[]
+  subscriptionInvoices SubscriptionInvoice[]
+  subscriptionReceipts SubscriptionReceipt[]
 
   @@index([status])
   @@index([plan])
   @@map("tenants")
+}
+
+enum SubscriptionPeriod {
+  MONTHLY
+  ANNUAL
+}
+
+model SubscriptionPayment {
+  id        String             @id @default(uuid()) @db.Uuid
+  tenantId  String             @db.Uuid
+  plan      TenantPlan
+  period    SubscriptionPeriod
+  amount    Decimal            @db.Decimal(12, 2)
+  currency  String             @default("MAD") @db.VarChar(8)
+  method    String             @db.VarChar(32)
+  reference String?            @db.VarChar(255)
+  startDate DateTime           @db.Date
+  endDate   DateTime           @db.Date
+  notes     String?            @db.VarChar(500)
+  paidAt    DateTime           @default(now())
+  createdAt DateTime           @default(now())
+
+  tenant  Tenant               @relation(fields: [tenantId], references: [id])
+  invoice SubscriptionInvoice?
+  receipt SubscriptionReceipt?
+
+  @@index([tenantId])
+  @@index([paidAt])
+  @@map("subscription_payments")
+}
+
+model SubscriptionInvoice {
+  id            String   @id @default(uuid()) @db.Uuid
+  invoiceNumber String   @unique @db.VarChar(32)
+  paymentId     String   @unique @db.Uuid
+  tenantId      String   @db.Uuid
+  amount        Decimal  @db.Decimal(12, 2)
+  taxRate       Decimal  @default(0.20) @db.Decimal(5, 4)
+  taxAmount     Decimal  @db.Decimal(12, 2)
+  totalTtc      Decimal  @db.Decimal(12, 2)
+  currency      String   @default("MAD") @db.VarChar(8)
+  issuedAt      DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  payment SubscriptionPayment @relation(fields: [paymentId], references: [id])
+  tenant  Tenant              @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([issuedAt])
+  @@map("subscription_invoices")
+}
+
+model SubscriptionReceipt {
+  id            String   @id @default(uuid()) @db.Uuid
+  receiptNumber String   @unique @db.VarChar(32)
+  paymentId     String   @unique @db.Uuid
+  tenantId      String   @db.Uuid
+  amount        Decimal  @db.Decimal(12, 2)
+  currency      String   @default("MAD") @db.VarChar(8)
+  method        String   @db.VarChar(32)
+  reference     String?  @db.VarChar(255)
+  issuedAt      DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  payment SubscriptionPayment @relation(fields: [paymentId], references: [id])
+  tenant  Tenant              @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@map("subscription_receipts")
 }
 
 model User {
@@ -539,6 +611,7 @@ model RentalContract {
   invoices    Invoice[]
   inspections VehicleInspection[]
   deposit     Deposit?
+  deletedAt   DateTime?
 
   @@unique([tenantId, contractNumber])
   @@index([tenantId])
@@ -611,7 +684,8 @@ model Invoice {
   tenant   Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   contract RentalContract? @relation(fields: [contractId], references: [id])
   client   Client          @relation(fields: [clientId], references: [id])
-  payments Payment[]
+  payments  Payment[]
+  deletedAt DateTime?
 
   @@unique([tenantId, invoiceNumber])
   @@index([tenantId])
@@ -892,6 +966,24 @@ enum PlatformAuditAction {
   TENANT_EXTEND_TRIAL
   TENANT_EXTEND_SUBSCRIPTION
   SWEEP_EXPIRIES
+  ENTITY_SOFT_DELETE
+  ENTITY_RESTORE
+}
+
+model EmailLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  to        String   @db.VarChar(255)
+  subject   String   @db.VarChar(500)
+  status    String   @default("SUCCESS") @db.VarChar(16)
+  error     String?  @db.VarChar(1000)
+  category  String   @db.VarChar(32)
+  tenantId  String?  @db.Uuid
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([tenantId])
+  @@index([status])
+  @@map("email_logs")
 }
 
 /// Append-only log of every SUPER_ADMIN-initiated platform-level action.

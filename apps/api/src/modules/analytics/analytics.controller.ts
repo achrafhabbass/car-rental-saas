@@ -5,6 +5,7 @@ import {
   Query,
   Res,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
@@ -12,6 +13,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { SkipEnvelope } from '../../common/decorators/skip-envelope.decorator';
 import { AnalyticsService } from './analytics.service';
 
+@ApiTags('Analytics')
 @Controller('analytics')
 export class AnalyticsController {
   constructor(private readonly analytics: AnalyticsService) {}
@@ -29,6 +31,15 @@ export class AnalyticsController {
   ) {
     const days = Math.min(Math.max(parseInt(windowDays ?? '30', 10) || 30, 1), 365);
     return this.analytics.getRevenueSeries(tenantId, days, granularity ?? 'day');
+  }
+
+  @Get('reservations/series')
+  reservationsSeries(
+    @CurrentTenant() tenantId: string,
+    @Query('weeks') weeks?: string,
+  ) {
+    const w = Math.min(Math.max(parseInt(weeks ?? '12', 10) || 12, 1), 52);
+    return this.analytics.getReservationsSeries(tenantId, w);
   }
 
   @Get('fleet/performance')

@@ -10,6 +10,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -18,6 +19,7 @@ import { ListInspectionsDto } from './dto/list-inspections.dto';
 import { UpdateInspectionDto } from './dto/update-inspection.dto';
 import { InspectionsService } from './inspections.service';
 
+@ApiTags('Inspections')
 @Controller('inspections')
 export class InspectionsController {
   constructor(private readonly inspections: InspectionsService) {}

@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationService } from '../mail/notification.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ReservationsRepository } from './reservations.repository';
 
@@ -25,6 +26,7 @@ export class OverdueReservationsSweeper {
     private readonly prisma: PrismaService,
     private readonly repo: ReservationsRepository,
     private readonly notifications: NotificationsService,
+    private readonly mailNotifications: NotificationService,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
@@ -32,6 +34,7 @@ export class OverdueReservationsSweeper {
     await this.sweep();
     await this.sweepContracts();
     await this.sweepTenantSubscriptions();
+    await this.warnExpiringSubscriptions();
   }
 
   /// Marks any TRIAL/ACTIVE tenant whose trialEndsAt or subscriptionEnd is
@@ -54,8 +57,40 @@ export class OverdueReservationsSweeper {
       this.logger.log(
         `Tenant subscription sweep: ${result.count} tenant(s) marked EXPIRED`,
       );
+      // Notify newly-expired tenants
+      const expiredTenants = await this.prisma.tenant.findMany({
+        where: { status: 'EXPIRED', deletedAt: null },
+        select: { id: true },
+      });
+      for (const t of expiredTenants) {
+        void this.mailNotifications.onSubscriptionExpired(t.id);
+      }
     }
     return { expired: result.count };
+  }
+
+  /// Warn tenants whose subscription expires within 7 days.
+  async warnExpiringSubscriptions(): Promise<void> {
+    const now = new Date();
+    const in7d = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const expiring = await this.prisma.tenant.findMany({
+      where: {
+        status: 'ACTIVE',
+        subscriptionEnd: { gte: now, lte: in7d },
+        deletedAt: null,
+      },
+    });
+    for (const t of expiring) {
+      const days = Math.ceil(
+        (t.subscriptionEnd!.getTime() - now.getTime()) / (24 * 60 * 60 * 1000),
+      );
+      void this.mailNotifications.onSubscriptionExpiring(t.id, days);
+    }
+    if (expiring.length > 0) {
+      this.logger.log(
+        `Subscription expiry warning: ${expiring.length} tenant(s) notified`,
+      );
+    }
   }
 
   /// Same idea as sweep() but for ACTIVE contracts whose endDate has passed

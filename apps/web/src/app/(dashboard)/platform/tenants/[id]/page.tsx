@@ -3,15 +3,19 @@
 import {
   ArrowLeft,
   Ban,
+  Building2,
   CalendarPlus,
   CheckCircle2,
+  ImagePlus,
   LogIn,
   RotateCcw,
+  Save,
   Trash2,
+  Upload,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,6 +41,8 @@ const STATUS_TONE: Record<TenantStatusName, 'green' | 'blue' | 'amber' | 'red' |
   CANCELLED: 'slate',
 };
 
+const MAX_LOGO = 512 * 1024;
+
 function fmt(n: number): string {
   return n.toLocaleString('fr-FR', { maximumFractionDigits: 0 });
 }
@@ -52,21 +58,42 @@ function formatDate(iso: string | null): string {
   });
 }
 
+function readAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Lecture échouée'));
+    reader.onload = () => resolve(String(reader.result));
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function PlatformTenantDetailPage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const toast = useToast();
+  const fileRef = useRef<HTMLInputElement | null>(null);
 
   const [tenant, setTenant] = useState<TenantSummaryDto | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // Editable fields (Identity & subscription card)
+  // Editable fields
   const [plan, setPlan] = useState<TenantPlanName | ''>('');
   const [billingEmail, setBillingEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [website, setWebsite] = useState('');
+  const [ice, setIce] = useState('');
+  const [rc, setRc] = useState('');
+  const [taxId, setTaxId] = useState('');
+  const [patente, setPatente] = useState('');
+  const [cnss, setCnss] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [bankRib, setBankRib] = useState('');
   const [subEnd, setSubEnd] = useState('');
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [pendingLogo, setPendingLogo] = useState<string | null>(null);
 
   // Lifecycle inputs
   const [trialDays, setTrialDays] = useState(7);
@@ -88,7 +115,18 @@ export default function PlatformTenantDetailPage() {
         setBillingEmail(t.billingEmail ?? '');
         setPhone(t.phone ?? '');
         setAddress(t.address ?? '');
+        setCity(t.city ?? '');
+        setWebsite(t.website ?? '');
+        setIce(t.ice ?? '');
+        setRc(t.rc ?? '');
+        setTaxId(t.taxId ?? '');
+        setPatente(t.patente ?? '');
+        setCnss(t.cnss ?? '');
+        setBankName(t.bankName ?? '');
+        setBankRib(t.bankRib ?? '');
         setSubEnd(t.subscriptionEnd?.slice(0, 10) ?? '');
+        setLogoPreview(t.logoUrl ?? null);
+        setPendingLogo(null);
       })
       .catch((err: unknown) =>
         setError(err instanceof ApiError ? err.message : 'Chargement échoué'),
@@ -99,6 +137,22 @@ export default function PlatformTenantDetailPage() {
     load();
   }, [load]);
 
+  async function onPickLogo(e: ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (!['image/png', 'image/jpeg'].includes(f.type)) {
+      toast.error('Format non supporté', 'PNG ou JPEG uniquement.');
+      return;
+    }
+    if (f.size > MAX_LOGO) {
+      toast.error('Fichier trop volumineux', `Max ${Math.round(MAX_LOGO / 1024)} Ko.`);
+      return;
+    }
+    const url = await readAsDataUrl(f);
+    setPendingLogo(url);
+    setLogoPreview(url);
+  }
+
   async function save() {
     if (!id) return;
     setBusy(true);
@@ -107,9 +161,19 @@ export default function PlatformTenantDetailPage() {
       await platformApi.updateTenant(id, {
         plan: (plan || undefined) as TenantPlanName | undefined,
         billingEmail: billingEmail || undefined,
-        phone: phone || undefined,
-        address: address || undefined,
+        phone,
+        address,
+        city,
+        website,
+        ice,
+        rc,
+        taxId,
+        patente,
+        cnss,
+        bankName,
+        bankRib,
         subscriptionEnd: subEnd ? new Date(subEnd).toISOString() : undefined,
+        ...(pendingLogo !== null ? { logoUrl: pendingLogo } : {}),
       });
       toast.success('Tenant mis à jour');
       load();
@@ -117,6 +181,23 @@ export default function PlatformTenantDetailPage() {
       const msg = err instanceof ApiError ? err.message : 'Mise à jour échouée';
       setError(msg);
       toast.error('Mise à jour échouée', msg);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removeLogo() {
+    if (!id) return;
+    setBusy(true);
+    try {
+      await platformApi.updateTenant(id, { logoUrl: '' });
+      setLogoPreview(null);
+      setPendingLogo(null);
+      if (fileRef.current) fileRef.current.value = '';
+      toast.success('Logo supprimé');
+      load();
+    } catch (err) {
+      toast.error('Échec', err instanceof ApiError ? err.message : 'Erreur');
     } finally {
       setBusy(false);
     }
@@ -130,9 +211,7 @@ export default function PlatformTenantDetailPage() {
       toast.success('Tenant activé');
       load();
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Échec';
-      setError(msg);
-      toast.error('Activation échouée', msg);
+      toast.error('Activation échouée', err instanceof ApiError ? err.message : 'Échec');
     } finally {
       setBusy(false);
     }
@@ -144,12 +223,10 @@ export default function PlatformTenantDetailPage() {
     setBusy(true);
     try {
       await platformApi.suspend(id, reason || undefined);
-      toast.info('Tenant suspendu', "Les utilisateurs ne pourront plus se connecter");
+      toast.info('Tenant suspendu');
       load();
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Échec';
-      setError(msg);
-      toast.error('Suspension échouée', msg);
+      toast.error('Suspension échouée', err instanceof ApiError ? err.message : 'Échec');
     } finally {
       setBusy(false);
     }
@@ -165,9 +242,7 @@ export default function PlatformTenantDetailPage() {
       setCancelReason('');
       load();
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Échec';
-      setError(msg);
-      toast.error('Résiliation échouée', msg);
+      toast.error('Résiliation échouée', err instanceof ApiError ? err.message : 'Échec');
     } finally {
       setBusy(false);
     }
@@ -181,9 +256,7 @@ export default function PlatformTenantDetailPage() {
       toast.success(`Essai prolongé de ${trialDays} jour(s)`);
       load();
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Échec';
-      setError(msg);
-      toast.error('Prolongation échouée', msg);
+      toast.error('Prolongation échouée', err instanceof ApiError ? err.message : 'Échec');
     } finally {
       setBusy(false);
     }
@@ -196,9 +269,7 @@ export default function PlatformTenantDetailPage() {
     try {
       await platformApi.extendSubscription(id, {
         days: extendNewDate ? undefined : extendDays,
-        newEndDate: extendNewDate
-          ? new Date(extendNewDate).toISOString()
-          : undefined,
+        newEndDate: extendNewDate ? new Date(extendNewDate).toISOString() : undefined,
       });
       toast.success(
         'Abonnement prolongé',
@@ -209,9 +280,7 @@ export default function PlatformTenantDetailPage() {
       setExtendNewDate('');
       load();
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Échec';
-      setError(msg);
-      toast.error('Prolongation échouée', msg);
+      toast.error('Prolongation échouée', err instanceof ApiError ? err.message : 'Échec');
     } finally {
       setBusy(false);
     }
@@ -222,13 +291,11 @@ export default function PlatformTenantDetailPage() {
     setBusy(true);
     try {
       await platformApi.softDelete(id);
-      toast.success('Tenant supprimé', 'Toutes les données restent archivées');
+      toast.success('Tenant supprimé');
       router.push('/platform/tenants');
       router.refresh();
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Échec';
-      setError(msg);
-      toast.error('Suppression échouée', msg);
+      toast.error('Suppression échouée', err instanceof ApiError ? err.message : 'Échec');
       setBusy(false);
       setConfirmDelete(false);
     }
@@ -241,16 +308,11 @@ export default function PlatformTenantDetailPage() {
     try {
       const result = await platformApi.impersonate(id);
       enterImpersonation(result);
-      toast.info(
-        'Impersonation activée',
-        `Connecté en tant que ${result.user.firstName} ${result.user.lastName}`,
-      );
+      toast.info('Impersonation activée', `Connecté en tant que ${result.user.firstName} ${result.user.lastName}`);
       router.replace('/dashboard');
       router.refresh();
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Échec';
-      setError(msg);
-      toast.error('Impersonation échouée', msg);
+      toast.error('Impersonation échouée', err instanceof ApiError ? err.message : 'Échec');
       setBusy(false);
     }
   }
@@ -259,9 +321,7 @@ export default function PlatformTenantDetailPage() {
     return (
       <div className="max-w-container text-sm text-slate-400">
         {error ? (
-          <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-red-700">
-            {error}
-          </div>
+          <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-red-700">{error}</div>
         ) : (
           'Chargement…'
         )}
@@ -299,99 +359,165 @@ export default function PlatformTenantDetailPage() {
         </div>
       )}
 
+      {/* KPI row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardBody>
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
-              Utilisateurs
-            </p>
-            <p className="mt-2 text-xl font-bold text-slate-900">{fmt(tenant.userCount)}</p>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody>
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Véhicules</p>
-            <p className="mt-2 text-xl font-bold text-slate-900">{fmt(tenant.vehicleCount)}</p>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody>
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
-              Contrats actifs
-            </p>
-            <p className="mt-2 text-xl font-bold text-slate-900">
-              {fmt(tenant.activeContractCount)}
-            </p>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody>
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Impayés</p>
-            <p className="mt-2 text-xl font-bold text-slate-900">
-              {fmtMoney(tenant.outstandingBalance)}
-            </p>
-          </CardBody>
-        </Card>
+        {[
+          { label: 'Utilisateurs', value: fmt(tenant.userCount) },
+          { label: 'Véhicules', value: fmt(tenant.vehicleCount) },
+          { label: 'Contrats actifs', value: fmt(tenant.activeContractCount) },
+          { label: 'Impayés', value: fmtMoney(tenant.outstandingBalance) },
+        ].map((kpi) => (
+          <Card key={kpi.label}>
+            <CardBody>
+              <p className="text-xs font-medium uppercase tracking-wider text-slate-500">{kpi.label}</p>
+              <p className="mt-2 text-xl font-bold text-slate-900">{kpi.value}</p>
+            </CardBody>
+          </Card>
+        ))}
       </div>
 
+      {/* Logo */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ImagePlus className="h-4 w-4 text-primary-500" />
+            Logo d'entreprise
+          </CardTitle>
+          <Badge tone="slate">PNG · JPEG · ≤ 512 Ko</Badge>
+        </CardHeader>
+        <CardBody>
+          <div className="flex flex-col md:flex-row items-start gap-6">
+            <div className="h-24 w-24 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
+              {logoPreview ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={logoPreview} alt="Logo" className="h-full w-full object-contain" />
+              ) : (
+                <Building2 className="h-7 w-7 text-slate-300" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0 space-y-3">
+              <p className="text-sm text-slate-600">
+                Ce logo apparaît sur les contrats PDF et documents du tenant.
+              </p>
+              <input ref={fileRef} type="file" accept="image/png,image/jpeg" className="hidden" onChange={onPickLogo} />
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="secondary" size="sm" onClick={() => fileRef.current?.click()}>
+                  <Upload className="h-4 w-4" />
+                  {logoPreview ? 'Remplacer' : 'Choisir'}
+                </Button>
+                {logoPreview && (
+                  <Button type="button" variant="danger" size="sm" onClick={removeLogo} loading={busy}>
+                    <Trash2 className="h-4 w-4" />
+                    Supprimer
+                  </Button>
+                )}
+                {pendingLogo && (
+                  <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                    Non enregistré — cliquez Enregistrer
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardBody>
+      </Card>
+
+      {/* Identité & abonnement */}
       <Card>
         <CardHeader>
           <CardTitle>Identité & abonnement</CardTitle>
         </CardHeader>
         <CardBody className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Field label="Plan" htmlFor="plan">
-            <Select
-              id="plan"
-              value={plan}
-              onChange={(e) => setPlan(e.currentTarget.value as TenantPlanName)}
-            >
+            <Select id="plan" value={plan} onChange={(e) => { const v = e.target.value; setPlan(v as TenantPlanName); }}>
               <option value="STARTER">Starter</option>
               <option value="BUSINESS">Business</option>
               <option value="ENTERPRISE">Enterprise</option>
             </Select>
           </Field>
           <Field label="Email de facturation" htmlFor="billing">
-            <Input
-              id="billing"
-              type="email"
-              value={billingEmail}
-              onChange={(e) => setBillingEmail(e.currentTarget.value)}
-            />
+            <Input id="billing" type="email" value={billingEmail} onChange={(e) => setBillingEmail(e.target.value)} />
           </Field>
           <Field label="Téléphone" htmlFor="phone">
-            <Input
-              id="phone"
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.currentTarget.value)}
-            />
+            <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
           </Field>
-          <div className="md:col-span-2">
-            <Field label="Adresse" htmlFor="address">
-              <Textarea
-                id="address"
-                rows={2}
-                value={address}
-                onChange={(e) => setAddress(e.currentTarget.value)}
-              />
-            </Field>
-          </div>
+          <Field label="Adresse" htmlFor="address">
+            <Input id="address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="12 avenue Hassan II" />
+          </Field>
+          <Field label="Ville" htmlFor="city">
+            <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Casablanca" />
+          </Field>
+          <Field label="Site web" htmlFor="website">
+            <Input id="website" type="url" value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://..." />
+          </Field>
           <Field label="Fin d'abonnement" htmlFor="sub-end">
-            <Input
-              id="sub-end"
-              type="date"
-              value={subEnd}
-              onChange={(e) => setSubEnd(e.currentTarget.value)}
-            />
+            <Input id="sub-end" type="date" value={subEnd} onChange={(e) => setSubEnd(e.target.value)} />
           </Field>
-          <div className="md:col-span-3 flex justify-end">
-            <Button onClick={save} loading={busy}>
-              Enregistrer
-            </Button>
+        </CardBody>
+      </Card>
+
+      {/* Identifiants légaux */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-primary-500" />
+            Identifiants légaux & fiscaux
+          </CardTitle>
+          <Badge tone="slate">Affichés sur les documents</Badge>
+        </CardHeader>
+        <CardBody className="space-y-4">
+          <p className="text-xs text-slate-500">
+            Ces informations apparaîtront sur les contrats, factures et documents du tenant.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Field label="ICE" htmlFor="ice">
+              <Input id="ice" value={ice} onChange={(e) => setIce(e.target.value)} placeholder="15 chiffres" maxLength={32} />
+            </Field>
+            <Field label="RC (Registre de Commerce)" htmlFor="rc">
+              <Input id="rc" value={rc} onChange={(e) => setRc(e.target.value)} maxLength={64} />
+            </Field>
+            <Field label="IF (Identifiant Fiscal)" htmlFor="taxId">
+              <Input id="taxId" value={taxId} onChange={(e) => setTaxId(e.target.value)} maxLength={64} />
+            </Field>
+            <Field label="Patente" htmlFor="patente">
+              <Input id="patente" value={patente} onChange={(e) => setPatente(e.target.value)} maxLength={64} />
+            </Field>
+            <Field label="CNSS" htmlFor="cnss">
+              <Input id="cnss" value={cnss} onChange={(e) => setCnss(e.target.value)} maxLength={64} />
+            </Field>
           </div>
         </CardBody>
       </Card>
 
+      {/* Coordonnées bancaires */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-primary-500" />
+            Coordonnées bancaires
+          </CardTitle>
+        </CardHeader>
+        <CardBody>
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-4">
+            <Field label="Banque" htmlFor="bankName">
+              <Input id="bankName" value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="Attijariwafa Bank" maxLength={120} />
+            </Field>
+            <Field label="RIB" htmlFor="bankRib">
+              <Input id="bankRib" value={bankRib} onChange={(e) => setBankRib(e.target.value)} placeholder="24 chiffres" maxLength={64} />
+            </Field>
+          </div>
+        </CardBody>
+      </Card>
+
+      {/* Save button */}
+      <div className="sticky bottom-0 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent pt-6 pb-2 flex justify-end">
+        <Button onClick={save} loading={busy} size="lg">
+          <Save className="h-4 w-4" />
+          Enregistrer les modifications
+        </Button>
+      </div>
+
+      {/* Cycle de vie */}
       <Card>
         <CardHeader>
           <CardTitle>Cycle de vie</CardTitle>
@@ -425,11 +551,7 @@ export default function PlatformTenantDetailPage() {
                 Login as company
               </Button>
             )}
-            <Button
-              variant="danger"
-              onClick={() => setConfirmDelete(true)}
-              disabled={busy}
-            >
+            <Button variant="danger" onClick={() => setConfirmDelete(true)} disabled={busy}>
               <Trash2 className="h-4 w-4" />
               Supprimer définitivement
             </Button>
@@ -444,14 +566,10 @@ export default function PlatformTenantDetailPage() {
                   min={1}
                   max={365}
                   value={trialDays}
-                  onChange={(e) => setTrialDays(Number(e.currentTarget.value) || 0)}
+                  onChange={(e) => setTrialDays(Number(e.target.value) || 0)}
                 />
               </Field>
-              <Button
-                variant="secondary"
-                onClick={extendTrial}
-                disabled={busy || trialDays < 1}
-              >
+              <Button variant="secondary" onClick={extendTrial} disabled={busy || trialDays < 1}>
                 <CalendarPlus className="h-4 w-4" />
                 Prolonger
               </Button>
@@ -460,12 +578,9 @@ export default function PlatformTenantDetailPage() {
 
           {canExtendSubscription && (
             <div className="p-3 border border-slate-200 rounded-lg bg-slate-50 space-y-3">
-              <p className="text-sm font-semibold text-slate-900">
-                Prolonger l'abonnement
-              </p>
+              <p className="text-sm font-semibold text-slate-900">Prolonger l'abonnement</p>
               <p className="text-xs text-slate-500">
-                Soit ajouter N jours à l'échéance actuelle, soit définir une date absolue.
-                Si le tenant est expiré ou suspendu, il sera réactivé.
+                Ajouter N jours ou définir une date absolue. Si expiré/suspendu, le tenant sera réactivé.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
                 <Field label="Ajouter N jours" htmlFor="ext-days">
@@ -475,17 +590,12 @@ export default function PlatformTenantDetailPage() {
                     min={1}
                     max={3650}
                     value={extendDays}
-                    onChange={(e) => setExtendDays(Number(e.currentTarget.value) || 0)}
+                    onChange={(e) => setExtendDays(Number(e.target.value) || 0)}
                     disabled={!!extendNewDate}
                   />
                 </Field>
                 <Field label="OU date absolue" htmlFor="ext-date">
-                  <Input
-                    id="ext-date"
-                    type="date"
-                    value={extendNewDate}
-                    onChange={(e) => setExtendNewDate(e.currentTarget.value)}
-                  />
+                  <Input id="ext-date" type="date" value={extendNewDate} onChange={(e) => setExtendNewDate(e.target.value)} />
                 </Field>
                 <Button onClick={extendSubscription} loading={busy}>
                   <CalendarPlus className="h-4 w-4" />
@@ -503,15 +613,11 @@ export default function PlatformTenantDetailPage() {
         description={
           <div className="space-y-2">
             <p>
-              <strong>{tenant.name}</strong> sera marqué comme résilié et tous ses utilisateurs
-              perdront l'accès. Cette action peut être réactivée plus tard.
+              <strong>{tenant.name}</strong> sera marqué comme résilié et ses utilisateurs
+              perdront l'accès.
             </p>
             <Field label="Motif (optionnel)" htmlFor="cancel-reason">
-              <Input
-                id="cancel-reason"
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.currentTarget.value)}
-              />
+              <Input id="cancel-reason" value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} />
             </Field>
           </div>
         }
@@ -520,10 +626,7 @@ export default function PlatformTenantDetailPage() {
         cancelLabel="Annuler"
         loading={busy}
         onConfirm={cancel}
-        onCancel={() => {
-          setConfirmCancel(false);
-          setCancelReason('');
-        }}
+        onCancel={() => { setConfirmCancel(false); setCancelReason(''); }}
       />
 
       <ConfirmDialog
@@ -531,8 +634,7 @@ export default function PlatformTenantDetailPage() {
         title="Supprimer définitivement ce tenant ?"
         description={
           <span>
-            <strong>{tenant.name}</strong> sera retiré de la liste et plus aucun utilisateur ne
-            pourra s'y connecter. Les données restent archivées en base pour audit.
+            <strong>{tenant.name}</strong> sera retiré. Les données restent archivées pour audit.
           </span>
         }
         tone="danger"

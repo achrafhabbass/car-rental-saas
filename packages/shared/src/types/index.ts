@@ -18,3 +18,4 @@ export * from './inspection';
 export * from './deposit';
 export * from './calendar';
 export * from './audit';
+export * from './billing';

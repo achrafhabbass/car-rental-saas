@@ -81,14 +81,19 @@ const SECTIONS: NavSection[] = [
   },
   {
     title: 'Système',
-    items: [{ href: '/settings', label: 'Paramètres', icon: Settings }],
+    items: [
+      { href: '/team', label: 'Équipe', icon: Users },
+      { href: '/settings', label: 'Paramètres', icon: Settings },
+    ],
   },
 ];
 
 const PLATFORM_ITEMS: NavItem[] = [
   { href: '/platform', label: 'Vue plateforme', icon: ShieldCheck },
   { href: '/platform/tenants', label: 'Tenants', icon: Users },
+  { href: '/platform/billing', label: 'Facturation', icon: CreditCard },
   { href: '/platform/audit', label: "Journal d'audit", icon: ScrollText },
+  { href: '/platform/system', label: 'Système', icon: Settings },
 ];
 
 function CountBadge({ count, tone }: { count: number; tone: 'red' | 'amber' | 'blue' }) {

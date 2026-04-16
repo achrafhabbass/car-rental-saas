@@ -18,6 +18,7 @@ import {
   SuspendTenantDto,
   UpdateTenantPlatformDto,
 } from './dto/update-tenant.dto';
+import { NotificationService } from '../mail/notification.service';
 import { PlatformAuditService } from './platform-audit.service';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -64,6 +65,7 @@ export class PlatformService {
     private readonly prisma: PrismaService,
     private readonly audit: PlatformAuditService,
     private readonly authService: AuthService,
+    private readonly mailNotifications: NotificationService,
   ) {}
 
   /// Issues a fresh set of tokens for the target tenant's ADMIN user so a
@@ -304,9 +306,19 @@ export class PlatformService {
     const data: Prisma.TenantUpdateInput = {};
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.plan !== undefined) data.plan = dto.plan;
-    if (dto.billingEmail !== undefined) data.billingEmail = dto.billingEmail;
-    if (dto.phone !== undefined) data.phone = dto.phone;
-    if (dto.address !== undefined) data.address = dto.address;
+    if (dto.billingEmail !== undefined) data.billingEmail = dto.billingEmail || null;
+    if (dto.phone !== undefined) data.phone = dto.phone || null;
+    if (dto.address !== undefined) data.address = dto.address || null;
+    if (dto.city !== undefined) data.city = dto.city || null;
+    if (dto.website !== undefined) data.website = dto.website || null;
+    if (dto.logoUrl !== undefined) data.logoUrl = dto.logoUrl || null;
+    if (dto.taxId !== undefined) data.taxId = dto.taxId || null;
+    if (dto.ice !== undefined) data.ice = dto.ice || null;
+    if (dto.rc !== undefined) data.rc = dto.rc || null;
+    if (dto.patente !== undefined) data.patente = dto.patente || null;
+    if (dto.cnss !== undefined) data.cnss = dto.cnss || null;
+    if (dto.bankName !== undefined) data.bankName = dto.bankName || null;
+    if (dto.bankRib !== undefined) data.bankRib = dto.bankRib || null;
     if (dto.subscriptionEnd !== undefined)
       data.subscriptionEnd = new Date(dto.subscriptionEnd);
 
@@ -352,12 +364,20 @@ export class PlatformService {
     return this.prisma.tenant.update({ where: { id }, data: patch });
   }
 
-  suspend(id: string, dto: SuspendTenantDto): Promise<Tenant> {
-    return this.transition(id, 'SUSPENDED', dto.reason);
+  async suspend(id: string, dto: SuspendTenantDto): Promise<Tenant> {
+    const result = await this.transition(id, 'SUSPENDED', dto.reason);
+    void this.mailNotifications.onAccountSuspended(id, dto.reason);
+    return result;
   }
 
-  activate(id: string): Promise<Tenant> {
-    return this.transition(id, 'ACTIVE');
+  async activate(id: string): Promise<Tenant> {
+    const result = await this.transition(id, 'ACTIVE');
+    void this.mailNotifications.onAccountReactivated(
+      id,
+      result.plan,
+      result.subscriptionEnd?.toLocaleDateString('fr-FR') ?? '—',
+    );
+    return result;
   }
 
   cancel(id: string, dto: SuspendTenantDto): Promise<Tenant> {

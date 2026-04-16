@@ -28,6 +28,19 @@ export interface AppConfig {
   log: {
     level: string;
   };
+  mail: {
+    host: string;
+    port: number;
+    user: string;
+    pass: string;
+    from: string;
+    enabled: boolean;
+  };
+  backup: {
+    dir: string;
+    cron: string;
+    retentionDays: number;
+  };
 }
 
 export default (): AppConfig => ({
@@ -59,5 +72,18 @@ export default (): AppConfig => ({
   },
   log: {
     level: process.env.LOG_LEVEL ?? 'info',
+  },
+  mail: {
+    host: process.env.MAIL_HOST ?? 'smtp.gmail.com',
+    port: parseInt(process.env.MAIL_PORT ?? '587', 10),
+    user: process.env.MAIL_USER ?? '',
+    pass: process.env.MAIL_PASS ?? '',
+    from: process.env.MAIL_FROM ?? 'noreply@autosphere.ma',
+    enabled: process.env.MAIL_ENABLED === 'true',
+  },
+  backup: {
+    dir: process.env.BACKUP_DIR ?? './backups',
+    cron: process.env.BACKUP_CRON ?? '0 2 * * *',
+    retentionDays: parseInt(process.env.BACKUP_RETENTION_DAYS ?? '30', 10),
   },
 });

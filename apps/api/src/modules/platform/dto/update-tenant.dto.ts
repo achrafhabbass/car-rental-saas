@@ -37,6 +37,56 @@ export class UpdateTenantPlatformDto {
   address?: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  city?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  website?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1_800_000)
+  logoUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  taxId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  ice?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  rc?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  patente?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  cnss?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  bankName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  bankRib?: string;
+
+  @IsOptional()
   @IsDateString()
   subscriptionEnd?: string;
 }

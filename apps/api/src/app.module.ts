@@ -13,6 +13,9 @@ import { validationSchema } from './config/validation';
 import { AlertsModule } from './modules/alerts/alerts.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { BackupModule } from './modules/backup/backup.module';
+import { BillingModule } from './modules/billing/billing.module';
+import { SoftDeleteModule } from './modules/soft-delete/soft-delete.module';
 import { ClientsModule } from './modules/clients/clients.module';
 import { ContractsModule } from './modules/contracts/contracts.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
@@ -20,6 +23,7 @@ import { DepositsModule } from './modules/deposits/deposits.module';
 import { HealthModule } from './modules/health/health.module';
 import { InspectionsModule } from './modules/inspections/inspections.module';
 import { InvoicesModule } from './modules/invoices/invoices.module';
+import { MailModule } from './modules/mail/mail.module';
 import { MaintenanceModule } from './modules/maintenance/maintenance.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PaymentsModule } from './modules/payments/payments.module';
@@ -82,6 +86,10 @@ import { PrismaModule } from './prisma/prisma.module';
     InspectionsModule,
     DepositsModule,
     DashboardModule,
+    MailModule,
+    BackupModule,
+    BillingModule,
+    SoftDeleteModule,
   ],
   providers: [
     TenantMiddleware,

@@ -9,7 +9,7 @@ export class InvoicesRepository {
 
   findById(tenantId: string, id: string): Promise<Invoice | null> {
     return this.prisma.invoice.findFirst({
-      where: { id, tenantId },
+      where: { id, tenantId, deletedAt: null },
       include: { client: true, contract: true, payments: true },
     });
   }
@@ -21,7 +21,7 @@ export class InvoicesRepository {
     take: number,
     orderBy?: Prisma.InvoiceOrderByWithRelationInput,
   ): Promise<[Invoice[], number]> {
-    const full: Prisma.InvoiceWhereInput = { ...where, tenantId };
+    const full: Prisma.InvoiceWhereInput = { ...where, tenantId, deletedAt: null };
     return Promise.all([
       this.prisma.invoice.findMany({
         where: full,

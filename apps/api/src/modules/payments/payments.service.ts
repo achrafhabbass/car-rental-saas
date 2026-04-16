@@ -12,6 +12,7 @@ import {
 } from '../../common/dto/pagination.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AlertsService } from '../alerts/alerts.service';
+import { NotificationService } from '../mail/notification.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { ListPaymentsDto } from './dto/list-payments.dto';
 import { PaymentsRepository } from './payments.repository';
@@ -22,6 +23,7 @@ export class PaymentsService {
     private readonly repo: PaymentsRepository,
     private readonly prisma: PrismaService,
     private readonly alerts: AlertsService,
+    private readonly notifications: NotificationService,
   ) {}
 
   async list(tenantId: string, dto: ListPaymentsDto): Promise<PaginatedResult<Payment>> {
@@ -120,6 +122,8 @@ export class PaymentsService {
     if (dto.invoiceId) {
       await this.alerts.syncInvoiceAlerts(tenantId, dto.invoiceId);
     }
+    void this.notifications.onPaymentReceived(result.id);
+
     return result;
   }
 }

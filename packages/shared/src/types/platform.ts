@@ -26,6 +26,16 @@ export interface TenantSummaryDto {
   billingEmail: string | null;
   phone: string | null;
   address: string | null;
+  city: string | null;
+  website: string | null;
+  logoUrl: string | null;
+  taxId: string | null;
+  ice: string | null;
+  rc: string | null;
+  patente: string | null;
+  cnss: string | null;
+  bankName: string | null;
+  bankRib: string | null;
   subscriptionStart: string | null;
   subscriptionEnd: string | null;
   trialEndsAt: string | null;
@@ -42,6 +52,16 @@ export interface UpdateTenantPlatformInput {
   billingEmail?: string;
   phone?: string;
   address?: string;
+  city?: string;
+  website?: string;
+  logoUrl?: string;
+  taxId?: string;
+  ice?: string;
+  rc?: string;
+  patente?: string;
+  cnss?: string;
+  bankName?: string;
+  bankRib?: string;
   subscriptionEnd?: string;
 }
 

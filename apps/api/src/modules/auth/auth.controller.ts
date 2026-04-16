@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 
 import { AllowNoTenant } from '../../common/decorators/allow-no-tenant.decorator';
@@ -24,6 +25,7 @@ import { RegisterDto } from './dto/register.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import type { JwtPayload } from './interfaces/jwt-payload.interface';
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(
