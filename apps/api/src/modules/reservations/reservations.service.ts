@@ -13,6 +13,7 @@ import {
 } from '../../common/dto/pagination.dto';
 import { AlertsService } from '../alerts/alerts.service';
 import { ClientsService } from '../clients/clients.service';
+import { NotificationService } from '../mail/notification.service';
 import { ContractsService } from '../contracts/contracts.service';
 import { VehiclesRepository } from '../vehicles/vehicles.repository';
 import { VehiclesService } from '../vehicles/vehicles.service';
@@ -30,6 +31,7 @@ export class ReservationsService {
     private readonly clients: ClientsService,
     private readonly alerts: AlertsService,
     private readonly contractsService: ContractsService,
+    private readonly notifications: NotificationService,
   ) {}
 
   async list(
@@ -97,7 +99,7 @@ export class ReservationsService {
 
     const reservationCode = await this.repo.generateCode(tenantId);
 
-    return this.repo.create({
+    const reservation = await this.repo.create({
       tenantId,
       reservationCode,
       vehicleId: dto.vehicleId,
@@ -112,6 +114,10 @@ export class ReservationsService {
       paymentStatus: dto.paymentStatus ?? 'PENDING',
       notes: dto.notes,
     });
+
+    void this.notifications.onReservationCreated(reservation.id);
+
+    return reservation;
   }
 
   async updatePaymentStatus(

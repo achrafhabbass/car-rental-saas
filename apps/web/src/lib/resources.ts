@@ -323,6 +323,8 @@ export const analyticsApi = {
     api.get<VehiclePerformanceDto[]>(`/analytics/fleet/performance${qs({ limit })}`),
   topClients: (limit = 10) =>
     api.get<ClientPerformanceDto[]>(`/analytics/clients/top${qs({ limit })}`),
+  reservationsSeries: (weeks = 12) =>
+    api.get<Array<{ week: string; count: number }>>(`/analytics/reservations/series${qs({ weeks })}`),
   /// Returns a CSV export URL ready for use with <a href download>.
   /// The Authorization header can't be set on an anchor download, so the caller
   /// should fetch the blob with the auth-enabled client and build an object URL.

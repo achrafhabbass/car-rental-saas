@@ -13,6 +13,7 @@ import {
 } from '../../common/dto/pagination.dto';
 import { AlertsService } from '../alerts/alerts.service';
 import { ClientsService } from '../clients/clients.service';
+import { NotificationService } from '../mail/notification.service';
 import { buildContractPdf } from './contract-pdf';
 import { VehiclesRepository } from '../vehicles/vehicles.repository';
 import { VehiclesService } from '../vehicles/vehicles.service';
@@ -31,6 +32,7 @@ export class ContractsService {
     private readonly vehiclesRepo: VehiclesRepository,
     private readonly clients: ClientsService,
     private readonly alerts: AlertsService,
+    private readonly notifications: NotificationService,
   ) {}
 
   async list(
@@ -122,7 +124,7 @@ export class ContractsService {
 
     const contractNumber = await this.repo.generateContractNumber(tenantId);
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const contract = await tx.rentalContract.create({
         data: {
           tenantId,
@@ -164,6 +166,10 @@ export class ContractsService {
 
       return contract;
     });
+
+    void this.notifications.onContractCreated(result.id);
+
+    return result;
   }
 
   async complete(

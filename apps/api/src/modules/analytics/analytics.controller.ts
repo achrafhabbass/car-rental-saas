@@ -31,6 +31,15 @@ export class AnalyticsController {
     return this.analytics.getRevenueSeries(tenantId, days, granularity ?? 'day');
   }
 
+  @Get('reservations/series')
+  reservationsSeries(
+    @CurrentTenant() tenantId: string,
+    @Query('weeks') weeks?: string,
+  ) {
+    const w = Math.min(Math.max(parseInt(weeks ?? '12', 10) || 12, 1), 52);
+    return this.analytics.getReservationsSeries(tenantId, w);
+  }
+
   @Get('fleet/performance')
   fleetPerformance(
     @CurrentTenant() tenantId: string,

@@ -32,4 +32,9 @@ export interface ClientPerformanceDto {
   lastContractAt: string | null;
 }
 
+export interface ReservationWeekPointDto {
+  week: string;
+  count: number;
+}
+
 export type ReportGranularity = 'day' | 'week' | 'month';

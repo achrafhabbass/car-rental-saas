@@ -253,6 +253,47 @@ export class AnalyticsService {
       .sort((a, b) => (a.date < b.date ? -1 : 1));
   }
 
+  // -------- Reservations series --------
+
+  async getReservationsSeries(
+    tenantId: string,
+    weeks = 12,
+  ): Promise<Array<{ week: string; count: number }>> {
+    const now = new Date();
+    const from = new Date(now.getTime() - weeks * 7 * DAY_MS);
+
+    const reservations = await this.prisma.reservation.findMany({
+      where: { tenantId, createdAt: { gte: from } },
+      select: { createdAt: true },
+    });
+
+    const buckets = new Map<string, number>();
+    // Seed weeks
+    for (let i = 0; i < weeks; i++) {
+      const d = new Date(now.getTime() - (weeks - 1 - i) * 7 * DAY_MS);
+      const key = this.isoWeek(d);
+      if (!buckets.has(key)) buckets.set(key, 0);
+    }
+
+    for (const r of reservations) {
+      const key = this.isoWeek(r.createdAt);
+      buckets.set(key, (buckets.get(key) ?? 0) + 1);
+    }
+
+    return Array.from(buckets.entries())
+      .map(([week, count]) => ({ week, count }))
+      .sort((a, b) => (a.week < b.week ? -1 : 1));
+  }
+
+  private isoWeek(d: Date): string {
+    const tmp = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+    const day = tmp.getUTCDay() || 7;
+    tmp.setUTCDate(tmp.getUTCDate() + 4 - day);
+    const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+    const week = Math.ceil(((tmp.getTime() - yearStart.getTime()) / DAY_MS + 1) / 7);
+    return `S${String(week).padStart(2, '0')}`;
+  }
+
   // -------- Fleet performance --------
 
   async getVehiclePerformance(
