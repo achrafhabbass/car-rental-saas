@@ -304,9 +304,19 @@ export class PlatformService {
     const data: Prisma.TenantUpdateInput = {};
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.plan !== undefined) data.plan = dto.plan;
-    if (dto.billingEmail !== undefined) data.billingEmail = dto.billingEmail;
-    if (dto.phone !== undefined) data.phone = dto.phone;
-    if (dto.address !== undefined) data.address = dto.address;
+    if (dto.billingEmail !== undefined) data.billingEmail = dto.billingEmail || null;
+    if (dto.phone !== undefined) data.phone = dto.phone || null;
+    if (dto.address !== undefined) data.address = dto.address || null;
+    if (dto.city !== undefined) data.city = dto.city || null;
+    if (dto.website !== undefined) data.website = dto.website || null;
+    if (dto.logoUrl !== undefined) data.logoUrl = dto.logoUrl || null;
+    if (dto.taxId !== undefined) data.taxId = dto.taxId || null;
+    if (dto.ice !== undefined) data.ice = dto.ice || null;
+    if (dto.rc !== undefined) data.rc = dto.rc || null;
+    if (dto.patente !== undefined) data.patente = dto.patente || null;
+    if (dto.cnss !== undefined) data.cnss = dto.cnss || null;
+    if (dto.bankName !== undefined) data.bankName = dto.bankName || null;
+    if (dto.bankRib !== undefined) data.bankRib = dto.bankRib || null;
     if (dto.subscriptionEnd !== undefined)
       data.subscriptionEnd = new Date(dto.subscriptionEnd);
 

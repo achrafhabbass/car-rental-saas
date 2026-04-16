@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ExportButtons } from '@/components/ui/export-buttons';
 import { PageHeader } from '@/components/ui/page-header';
 import { SearchInput } from '@/components/ui/search-input';
 import { Badge, Table, Tbody, Td, Th, Thead, Tr } from '@/components/ui/table';
@@ -52,12 +53,15 @@ export default function ClientsPage() {
         title="Clients"
         description={`${total} client${total > 1 ? 's' : ''}`}
         actions={
-          <Link href="/clients/new">
-            <Button>
-              <Plus className="h-4 w-4" />
-              Nouveau client
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <ExportButtons basePath="/clients/export" />
+            <Link href="/clients/new">
+              <Button>
+                <Plus className="h-4 w-4" />
+                Nouveau client
+              </Button>
+            </Link>
+          </div>
         }
       />
 

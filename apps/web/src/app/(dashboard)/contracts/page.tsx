@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ExportButtons } from '@/components/ui/export-buttons';
 import { PageHeader } from '@/components/ui/page-header';
 import { SearchInput } from '@/components/ui/search-input';
 import { Badge, Table, Tbody, Td, Th, Thead, Tr } from '@/components/ui/table';
@@ -60,12 +61,15 @@ export default function ContractsPage() {
         title="Contrats"
         description={`${total} contrat${total > 1 ? 's' : ''}`}
         actions={
-          <Link href="/contracts/new">
-            <Button>
-              <Plus className="h-4 w-4" />
-              Nouveau contrat
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <ExportButtons basePath="/contracts/export" />
+            <Link href="/contracts/new">
+              <Button>
+                <Plus className="h-4 w-4" />
+                Nouveau contrat
+              </Button>
+            </Link>
+          </div>
         }
       />
 

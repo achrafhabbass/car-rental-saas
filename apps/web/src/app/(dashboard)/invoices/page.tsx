@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ExportButtons } from '@/components/ui/export-buttons';
 import { PageHeader } from '@/components/ui/page-header';
 import { SearchInput } from '@/components/ui/search-input';
 import { Badge, Table, Tbody, Td, Th, Thead, Tr } from '@/components/ui/table';
@@ -62,12 +63,15 @@ export default function InvoicesPage() {
         title="Factures"
         description={`${total} facture${total > 1 ? 's' : ''}`}
         actions={
-          <Link href="/invoices/new">
-            <Button>
-              <Plus className="h-4 w-4" />
-              Nouvelle facture
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <ExportButtons basePath="/invoices/export" />
+            <Link href="/invoices/new">
+              <Button>
+                <Plus className="h-4 w-4" />
+                Nouvelle facture
+              </Button>
+            </Link>
+          </div>
         }
       />
 
