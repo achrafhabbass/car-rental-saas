@@ -25,6 +25,7 @@ import type {
   PlanDefinitionDto,
   SubscriptionInvoiceDto,
   SubscriptionPaymentDto,
+  SubscriptionReceiptDto,
   TenantDto,
 } from '@autosphere/shared';
 
@@ -56,6 +57,7 @@ export default function BillingPage() {
   const [payments, setPayments] = useState<SubscriptionPaymentDto[]>([]);
   const [tenants, setTenants] = useState<TenantDto[]>([]);
   const [invoices, setInvoices] = useState<SubscriptionInvoiceDto[]>([]);
+  const [receipts, setReceipts] = useState<SubscriptionReceiptDto[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   // Payment form
@@ -76,13 +78,15 @@ export default function BillingPage() {
       billingApi.payments(30),
       platformApi.listTenants({ pageSize: 200 }),
       billingApi.invoices(30),
+      billingApi.receipts(30),
     ])
-      .then(([p, s, pay, t, inv]) => {
+      .then(([p, s, pay, t, inv, rcp]) => {
         setPlans(p);
         setSummary(s);
         setPayments(pay);
         setTenants(t.items);
         setInvoices(inv);
+        setReceipts(rcp);
       })
       .catch((err) => {
         if (err instanceof ApiError) setError(err.message);
@@ -369,6 +373,66 @@ export default function BillingPage() {
                           downloadFile(
                             billingApi.invoicePdfPath(inv.id),
                             `${inv.invoiceNumber}.pdf`,
+                          )
+                        }
+                      >
+                        <FileDown className="h-4 w-4" />
+                      </Button>
+                    </Td>
+                  </Tr>
+                ))
+              )}
+            </Tbody>
+          </Table>
+        </CardBody>
+      </Card>
+
+      {/* Receipts */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-primary-500" />
+            Reçus de paiement
+          </CardTitle>
+          <Badge tone="slate">{receipts.length} derniers</Badge>
+        </CardHeader>
+        <CardBody className="overflow-x-auto">
+          <Table>
+            <Thead>
+              <Tr>
+                <Th>N° Reçu</Th>
+                <Th>Tenant</Th>
+                <Th>Montant</Th>
+                <Th>Mode</Th>
+                <Th>Référence</Th>
+                <Th>Date</Th>
+                <Th>PDF</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {receipts.length === 0 ? (
+                <Tr>
+                  <Td colSpan={7} className="text-center text-slate-400 py-6">
+                    Aucun reçu. Les reçus sont générés automatiquement.
+                  </Td>
+                </Tr>
+              ) : (
+                receipts.map((r) => (
+                  <Tr key={r.id}>
+                    <Td className="font-mono text-xs font-semibold">{r.receiptNumber}</Td>
+                    <Td className="font-medium">{r.tenant?.name ?? '—'}</Td>
+                    <Td className="font-semibold">{fmt(Number(r.amount))} MAD</Td>
+                    <Td>{r.method}</Td>
+                    <Td className="text-slate-500">{r.reference ?? '—'}</Td>
+                    <Td className="whitespace-nowrap">{formatDate(r.issuedAt)}</Td>
+                    <Td>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          downloadFile(
+                            billingApi.receiptPdfPath(r.id),
+                            `${r.receiptNumber}.pdf`,
                           )
                         }
                       >

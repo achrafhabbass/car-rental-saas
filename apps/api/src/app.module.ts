@@ -15,6 +15,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BackupModule } from './modules/backup/backup.module';
 import { BillingModule } from './modules/billing/billing.module';
+import { SoftDeleteModule } from './modules/soft-delete/soft-delete.module';
 import { ClientsModule } from './modules/clients/clients.module';
 import { ContractsModule } from './modules/contracts/contracts.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
@@ -88,6 +89,7 @@ import { PrismaModule } from './prisma/prisma.module';
     MailModule,
     BackupModule,
     BillingModule,
+    SoftDeleteModule,
   ],
   providers: [
     TenantMiddleware,

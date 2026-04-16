@@ -57,6 +57,20 @@ export interface SubscriptionInvoiceDto {
   };
 }
 
+export interface SubscriptionReceiptDto {
+  id: string;
+  receiptNumber: string;
+  paymentId: string;
+  tenantId: string;
+  amount: string;
+  currency: string;
+  method: string;
+  reference: string | null;
+  issuedAt: string;
+  tenant?: { name: string; slug: string };
+  payment?: { plan: string; period: SubscriptionPeriodName };
+}
+
 export interface RecordSubscriptionPaymentInput {
   plan: string;
   period: SubscriptionPeriodName;

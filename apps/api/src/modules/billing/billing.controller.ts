@@ -62,4 +62,24 @@ export class BillingController {
     res.setHeader('Cache-Control', 'no-store');
     return this.billing.generateInvoicePdf(id);
   }
+
+  // ---- Receipts ----
+
+  @Get('receipts')
+  listReceipts(@Query('limit') limit?: string) {
+    const n = Math.min(parseInt(limit ?? '50', 10) || 50, 200);
+    return this.billing.listReceipts(n);
+  }
+
+  @SkipEnvelope()
+  @Get('receipts/:id/pdf')
+  @Header('Content-Type', 'application/pdf')
+  async downloadReceiptPdf(
+    @Param('id') id: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<NodeJS.ReadableStream> {
+    res.setHeader('Content-Disposition', `attachment; filename="receipt-${id}.pdf"`);
+    res.setHeader('Cache-Control', 'no-store');
+    return this.billing.generateReceiptPdf(id);
+  }
 }

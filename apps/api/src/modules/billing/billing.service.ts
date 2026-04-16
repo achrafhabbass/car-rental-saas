@@ -4,12 +4,13 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import type { SubscriptionInvoice, SubscriptionPayment, TenantPlan } from '@prisma/client';
+import type { SubscriptionInvoice, SubscriptionPayment, SubscriptionReceipt, TenantPlan } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationService } from '../mail/notification.service';
 import { getPlan, PLANS, type PlanDefinition } from './plan-definitions';
 import { buildSubscriptionInvoicePdf } from './subscription-invoice-pdf';
+import { buildSubscriptionReceiptPdf } from './subscription-receipt-pdf';
 import type { RecordSubscriptionPaymentDto } from './dto/record-payment.dto';
 
 const TAX_RATE = 0.20;
@@ -119,10 +120,82 @@ export class BillingService {
       this.logger.log(`Tenant ${tenant.name} reactivated from ${tenant.status}`);
     }
 
-    // Auto-generate invoice
+    // Auto-generate invoice + receipt
     void this.createInvoice(payment.id, tenantId, Number(payment.amount));
+    void this.createReceipt(payment.id, tenantId, dto);
 
     return payment;
+  }
+
+  /** Auto-generate a receipt linked to a payment. */
+  async createReceipt(
+    paymentId: string,
+    tenantId: string,
+    dto: RecordSubscriptionPaymentDto,
+  ): Promise<SubscriptionReceipt> {
+    const receiptNumber = await this.generateReceiptNumber();
+    return this.prisma.subscriptionReceipt.create({
+      data: {
+        receiptNumber,
+        paymentId,
+        tenantId,
+        amount: dto.amount,
+        method: dto.method,
+        reference: dto.reference,
+      },
+    });
+  }
+
+  private async generateReceiptNumber(): Promise<string> {
+    const now = new Date();
+    const prefix = `RCP-${now.getFullYear()}-`;
+    const last = await this.prisma.subscriptionReceipt.findFirst({
+      where: { receiptNumber: { startsWith: prefix } },
+      orderBy: { receiptNumber: 'desc' },
+      select: { receiptNumber: true },
+    });
+    const seq = last
+      ? parseInt(last.receiptNumber.replace(prefix, ''), 10) + 1
+      : 1;
+    return `${prefix}${String(seq).padStart(4, '0')}`;
+  }
+
+  async listReceipts(limit = 50): Promise<SubscriptionReceipt[]> {
+    return this.prisma.subscriptionReceipt.findMany({
+      orderBy: { issuedAt: 'desc' },
+      take: limit,
+      include: {
+        tenant: { select: { name: true, slug: true } },
+        payment: { select: { plan: true, period: true } },
+      },
+    });
+  }
+
+  async generateReceiptPdf(receiptId: string): Promise<NodeJS.ReadableStream> {
+    const r = await this.prisma.subscriptionReceipt.findUnique({
+      where: { id: receiptId },
+      include: {
+        tenant: true,
+        payment: { include: { invoice: { select: { invoiceNumber: true } } } },
+      },
+    });
+    if (!r) throw new NotFoundException(`Receipt ${receiptId} not found`);
+
+    const plan = getPlan(r.payment.plan);
+    return buildSubscriptionReceiptPdf({
+      receiptNumber: r.receiptNumber,
+      issuedAt: r.issuedAt,
+      tenantName: r.tenant.name,
+      tenantAddress: r.tenant.address,
+      tenantCity: r.tenant.city,
+      amount: Number(r.amount),
+      currency: r.currency,
+      method: r.method,
+      reference: r.reference,
+      plan: plan.name,
+      period: r.payment.period === 'ANNUAL' ? 'Annuel' : 'Mensuel',
+      invoiceNumber: r.payment.invoice?.invoiceNumber,
+    });
   }
 
   /**

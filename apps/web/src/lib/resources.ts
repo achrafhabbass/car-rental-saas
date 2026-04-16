@@ -50,6 +50,7 @@ import type {
   RecordSubscriptionPaymentInput,
   RegisterRequest,
   SubscriptionInvoiceDto,
+  SubscriptionReceiptDto,
   RentalContractDto,
   ReservationDto,
   SubscriptionPaymentDto,
@@ -127,6 +128,20 @@ export const billingApi = {
   invoices: (limit = 50) =>
     api.get<SubscriptionInvoiceDto[]>(`/platform/billing/invoices${qs({ limit })}`),
   invoicePdfPath: (id: string) => `/platform/billing/invoices/${id}/pdf`,
+  receipts: (limit = 50) =>
+    api.get<SubscriptionReceiptDto[]>(`/platform/billing/receipts${qs({ limit })}`),
+  receiptPdfPath: (id: string) => `/platform/billing/receipts/${id}/pdf`,
+};
+
+// -------- Archive (soft delete / restore) --------
+
+export const archiveApi = {
+  listDeleted: (entity: string) =>
+    api.get<Array<{ id: string; deletedAt: string; label: string }>>(`/archive/${entity}`),
+  softDelete: (entity: string, id: string) =>
+    api.delete<void>(`/archive/${entity}/${id}`),
+  restore: (entity: string, id: string) =>
+    api.post<void>(`/archive/${entity}/${id}/restore`),
 };
 
 export const tenantSelfApi = {
