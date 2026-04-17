@@ -84,7 +84,6 @@ export const authApi = {
     api.post<AuthTokensDto & { userId: string; tenantId: string }>(
       '/auth/register',
       body,
-      { skipAuth: true },
     ),
   logout: () => api.post<void>('/auth/logout'),
   me: () => api.get<AuthProfileDto>('/auth/me'),
@@ -445,6 +444,14 @@ export interface ListPlatformTenantsQuery extends PaginationQuery {
 
 export const platformApi = {
   metrics: () => api.get<PlatformMetricsDto>('/platform/metrics'),
+  createTenant: (body: {
+    companyName: string;
+    companySlug: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+  }) => authApi.register(body),
   listTenants: (q?: ListPlatformTenantsQuery) =>
     api.get<PaginatedResult<TenantDto>>(`/platform/tenants${qs(q)}`),
   getTenant: (id: string) =>
