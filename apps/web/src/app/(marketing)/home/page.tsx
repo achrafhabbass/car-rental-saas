@@ -452,7 +452,7 @@ function DemoSection() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-primary-200 mb-1.5">Nom complet *</label>
-                  <input required value={form.fullName} onChange={set('fullName')} className="w-full rounded-lg bg-white/10 ring-1 ring-white/20 px-3.5 py-2.5 text-sm placeholder:text-white/40 focus:ring-2 focus:ring-white/40 focus:outline-none" placeholder="Achraf Habbass" />
+                  <input required value={form.fullName} onChange={set('fullName')} className="w-full rounded-lg bg-white/10 ring-1 ring-white/20 px-3.5 py-2.5 text-sm placeholder:text-white/40 focus:ring-2 focus:ring-white/40 focus:outline-none" placeholder="Mohammed Alami" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-primary-200 mb-1.5">Email *</label>
@@ -462,7 +462,7 @@ function DemoSection() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-primary-200 mb-1.5">Téléphone</label>
-                  <input value={form.phone} onChange={set('phone')} className="w-full rounded-lg bg-white/10 ring-1 ring-white/20 px-3.5 py-2.5 text-sm placeholder:text-white/40 focus:ring-2 focus:ring-white/40 focus:outline-none" placeholder="+212 6 00 00 00 00" />
+                  <input value={form.phone} onChange={set('phone')} className="w-full rounded-lg bg-white/10 ring-1 ring-white/20 px-3.5 py-2.5 text-sm placeholder:text-white/40 focus:ring-2 focus:ring-white/40 focus:outline-none" placeholder="+212 6 61 51 66 06" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-primary-200 mb-1.5">Société</label>
@@ -566,7 +566,7 @@ function ContactSection() {
 
         <div className="mt-12 flex flex-col md:flex-row items-center justify-center gap-8 text-sm text-slate-500">
           <span className="flex items-center gap-2"><Mail className="h-4 w-4" /> contact@autosphere.ma</span>
-          <span className="flex items-center gap-2"><Phone className="h-4 w-4" /> +212 6 00 00 00 00</span>
+          <span className="flex items-center gap-2"><Phone className="h-4 w-4" /> +212 6 61 51 66 06</span>
           <span className="flex items-center gap-2"><Shield className="h-4 w-4" /> Données sécurisées</span>
         </div>
       </div>

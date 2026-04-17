@@ -171,7 +171,7 @@ export default function PlatformTenantsPage() {
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   required
-                  placeholder="Achraf"
+                  placeholder="Mohammed"
                 />
               </Field>
               <Field label="Nom de l'admin" htmlFor="cLast" required>
@@ -180,7 +180,7 @@ export default function PlatformTenantsPage() {
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   required
-                  placeholder="Habbass"
+                  placeholder="Alami"
                 />
               </Field>
               <Field label="Email" htmlFor="cEmail" required>
