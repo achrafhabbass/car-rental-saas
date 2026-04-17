@@ -411,7 +411,10 @@ export const notificationsApi = {
 
 // -------- Analytics --------
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001/api/v1';
+const API_URL =
+  typeof window !== 'undefined'
+    ? '/api/v1'
+    : (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001/api/v1');
 
 export const analyticsApi = {
   dashboard: () => api.get<DashboardKpisDto>('/analytics/dashboard'),

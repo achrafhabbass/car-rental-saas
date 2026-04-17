@@ -2,7 +2,13 @@ import type { ApiEnvelope, ApiErrorEnvelope, AuthTokensDto } from '@autosphere/s
 
 import { session } from './session';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001/api/v1';
+// In the browser, use relative URL so requests go through the Next.js proxy
+// (rewrites in next.config.mjs forward /api/v1/* to the backend).
+// On the server (SSR), use the full URL.
+const API_URL =
+  typeof window !== 'undefined'
+    ? '/api/v1'
+    : (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001/api/v1');
 
 export class ApiError extends Error {
   /** Set to 'PLAN_LIMIT_EXCEEDED' when the error is a plan quota violation. */

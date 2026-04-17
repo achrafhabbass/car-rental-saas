@@ -26,7 +26,13 @@ export default function LoginPage() {
       router.push('/dashboard');
       router.refresh();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Connexion échouée');
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Connexion échouée');
+      }
     } finally {
       setLoading(false);
     }
