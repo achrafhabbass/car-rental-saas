@@ -74,6 +74,7 @@ export class UsersService {
       lastName: dto.lastName,
       role: dto.role,
       status: 'INVITED',
+      mustChangePassword: !dto.password,
     });
 
     // Return with temp password so caller can share it
@@ -124,6 +125,7 @@ export class UsersService {
     const newPassword = randomBytes(6).toString('hex');
     const hash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
     await this.repo.updatePasswordHash(userId, hash);
+    await this.repo.update(userId, { mustChangePassword: true });
     return newPassword;
   }
 
@@ -157,5 +159,7 @@ export class UsersService {
     }
     const hash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
     await this.repo.updatePasswordHash(id, hash);
+    // Clear mustChangePassword flag after successful change
+    await this.repo.update(id, { mustChangePassword: false });
   }
 }

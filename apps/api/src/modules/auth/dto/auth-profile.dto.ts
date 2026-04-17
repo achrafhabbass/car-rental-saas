@@ -30,6 +30,7 @@ export interface AuthProfileDto {
   role: UserRole;
   status: UserStatus;
   mfaEnabled: boolean;
+  mustChangePassword: boolean;
   emailVerifiedAt: string | null;
   lastLoginAt: string | null;
   createdAt: string;
@@ -49,6 +50,7 @@ export function toAuthProfile(
     role: user.role,
     status: user.status,
     mfaEnabled: user.mfaEnabled,
+    mustChangePassword: user.mustChangePassword,
     emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
     lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
     createdAt: user.createdAt.toISOString(),

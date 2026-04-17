@@ -85,6 +85,7 @@ export interface AuthProfileDto {
   role: UserRoleName;
   status: 'ACTIVE' | 'INVITED' | 'SUSPENDED' | 'DISABLED';
   mfaEnabled: boolean;
+  mustChangePassword: boolean;
   emailVerifiedAt: string | null;
   lastLoginAt: string | null;
   createdAt: string;

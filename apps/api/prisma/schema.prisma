@@ -398,6 +398,7 @@ model User {
   emailVerifiedAt DateTime?
   mfaEnabled      Boolean    @default(false)
   mfaSecret       String?    @db.VarChar(255)
+  mustChangePassword Boolean @default(false)
   lastLoginAt     DateTime?
   metadata        Json?
   createdAt       DateTime   @default(now())

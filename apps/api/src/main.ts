@@ -24,7 +24,15 @@ async function bootstrap(): Promise<void> {
   app.setGlobalPrefix(prefix);
   app.use(helmet());
   app.enableCors({
-    origin: corsOrigin.split(',').map((o) => o.trim()),
+    origin: corsOrigin.split(',').map((o) => {
+      const trimmed = o.trim();
+      if (trimmed.includes('*')) {
+        // Convert wildcard pattern to RegExp (e.g. https://*.ngrok-free.app)
+        const escaped = trimmed.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '.*');
+        return new RegExp(`^${escaped}$`);
+      }
+      return trimmed;
+    }),
     credentials: true,
   });
 

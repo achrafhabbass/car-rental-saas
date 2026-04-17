@@ -121,14 +121,8 @@ export default function LoginPage() {
         </Button>
       </form>
 
-      <p className="mt-10 text-center text-sm text-slate-500">
-        Pas encore de compte ?{' '}
-        <Link
-          href="/register"
-          className="font-semibold text-secondary hover:underline underline-offset-2"
-        >
-          Créer un compte →
-        </Link>
+      <p className="mt-10 text-center text-sm text-slate-400">
+        Contactez votre administrateur pour obtenir un accès.
       </p>
     </div>
   );

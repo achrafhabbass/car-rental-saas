@@ -14,6 +14,7 @@ import { Throttle } from '@nestjs/throttler';
 import { AllowNoTenant } from '../../common/decorators/allow-no-tenant.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { TenantsService } from '../tenants/tenants.service';
 import { UsersService } from '../users/users.service';
 import { AuthService } from './auth.service';
@@ -34,7 +35,8 @@ export class AuthController {
     private readonly tenantsService: TenantsService,
   ) {}
 
-  @Public()
+  @AllowNoTenant()
+  @Roles('SUPER_ADMIN')
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @Post('register')
   @HttpCode(HttpStatus.CREATED)

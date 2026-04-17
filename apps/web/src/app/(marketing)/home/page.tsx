@@ -132,7 +132,7 @@ function Navbar() {
             Connexion
           </Link>
           <Link
-            href="/register"
+            href="#demo"
             className="inline-flex items-center gap-1.5 rounded-lg bg-primary-500 px-4 py-2 text-sm font-semibold text-white shadow-md hover:bg-primary-600 transition"
           >
             Essai gratuit
@@ -362,7 +362,7 @@ function Pricing() {
                 ))}
               </ul>
               <Link
-                href="/register"
+                href="#demo"
                 className={`mt-8 block w-full rounded-xl py-3 text-center text-sm font-semibold transition ${
                   p.popular
                     ? 'bg-white text-primary-700 hover:bg-primary-50 shadow-md'

@@ -91,7 +91,7 @@ export class AuthService {
     }
   }
 
-  async login(dto: LoginDto): Promise<AuthTokens & { userId: string; tenantId: string | null }> {
+  async login(dto: LoginDto): Promise<AuthTokens & { userId: string; tenantId: string | null; mustChangePassword: boolean }> {
     const user = await this.usersService.findByEmail(dto.email.toLowerCase(), dto.tenantId);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -138,7 +138,12 @@ export class AuthService {
       role: user.role,
     });
 
-    return { ...tokens, userId: user.id, tenantId: user.tenantId };
+    return {
+      ...tokens,
+      userId: user.id,
+      tenantId: user.tenantId,
+      mustChangePassword: user.mustChangePassword,
+    };
   }
 
   /// Rotate refresh token: invalidate the incoming one, issue a new pair.

@@ -105,23 +105,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const register = useCallback<AuthContextValue['register']>(
-    async (input) => {
-      const result = await authApi.register(input);
-      session.setTokens({
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
-        tenantId: result.tenantId,
-      });
-      const profile = await authApi.me();
-      finalizeSession({
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
-        tenantId: result.tenantId,
-        user: profile,
-      });
-      return profile;
+    async () => {
+      throw new Error('Public registration is disabled. Contact your administrator.');
     },
-    [finalizeSession],
+    [],
   );
 
   const logout = useCallback<AuthContextValue['logout']>(async () => {
