@@ -80,7 +80,7 @@ async function main() {
   // 4. Create test client
   const client = await prisma.client.upsert({
     where: {
-      tenant_idNumber_unique: { tenantId: tenant.id, idNumber: 'CIN-TEST-001' },
+      tenantId_idNumber: { tenantId: tenant.id, idNumber: 'CIN-TEST-001' },
     },
     update: {},
     create: {

@@ -30,6 +30,7 @@ export interface VehiclePerformance {
   totalRevenue: number;
   contractCount: number;
   maintenanceCost: number;
+  creditCost: number;
   net: number;
 }
 
@@ -306,23 +307,35 @@ export class AnalyticsService {
     });
     if (vehicles.length === 0) return [];
 
-    const [contractAgg, maintenanceAgg, contractCounts] = await Promise.all([
-      this.prisma.rentalContract.groupBy({
-        by: ['vehicleId'],
-        where: { tenantId, status: { in: ['ACTIVE', 'COMPLETED'] } },
-        _sum: { totalAmount: true },
-      }),
-      this.prisma.maintenanceRecord.groupBy({
-        by: ['vehicleId'],
-        where: { tenantId },
-        _sum: { cost: true },
-      }),
-      this.prisma.rentalContract.groupBy({
-        by: ['vehicleId'],
-        where: { tenantId },
-        _count: { _all: true },
-      }),
-    ]);
+    const [contractAgg, maintenanceAgg, contractCounts, creditPaymentAgg, creditLinks] =
+      await Promise.all([
+        this.prisma.rentalContract.groupBy({
+          by: ['vehicleId'],
+          where: { tenantId, status: { in: ['ACTIVE', 'COMPLETED'] } },
+          _sum: { totalAmount: true },
+        }),
+        this.prisma.maintenanceRecord.groupBy({
+          by: ['vehicleId'],
+          where: { tenantId },
+          _sum: { cost: true },
+        }),
+        this.prisma.rentalContract.groupBy({
+          by: ['vehicleId'],
+          where: { tenantId },
+          _count: { _all: true },
+        }),
+        // Paid financing installments — PRD 6.10: profitability must account
+        // for the vehicle credit, not just maintenance.
+        this.prisma.vehicleCreditPayment.groupBy({
+          by: ['creditId'],
+          where: { tenantId, status: 'PAID' },
+          _sum: { paidAmount: true },
+        }),
+        this.prisma.vehicleCredit.findMany({
+          where: { tenantId },
+          select: { id: true, vehicleId: true },
+        }),
+      ]);
 
     const revenueById = new Map(
       contractAgg.map((c) => [c.vehicleId, Number(c._sum.totalAmount ?? 0)]),
@@ -334,10 +347,20 @@ export class AnalyticsService {
       contractCounts.map((c) => [c.vehicleId, c._count._all]),
     );
 
+    const creditToVehicle = new Map(creditLinks.map((c) => [c.id, c.vehicleId]));
+    const creditCostById = new Map<string, number>();
+    for (const agg of creditPaymentAgg) {
+      const vehicleId = creditToVehicle.get(agg.creditId);
+      if (!vehicleId) continue;
+      const amount = Number(agg._sum.paidAmount ?? 0);
+      creditCostById.set(vehicleId, (creditCostById.get(vehicleId) ?? 0) + amount);
+    }
+
     return vehicles
       .map<VehiclePerformance>((v) => {
         const revenue = revenueById.get(v.id) ?? 0;
         const maint = maintById.get(v.id) ?? 0;
+        const credit = creditCostById.get(v.id) ?? 0;
         return {
           vehicleId: v.id,
           registration: v.registration,
@@ -346,7 +369,8 @@ export class AnalyticsService {
           totalRevenue: revenue,
           contractCount: countById.get(v.id) ?? 0,
           maintenanceCost: maint,
-          net: revenue - maint,
+          creditCost: credit,
+          net: revenue - maint - credit,
         };
       })
       .sort((a, b) => b.totalRevenue - a.totalRevenue)

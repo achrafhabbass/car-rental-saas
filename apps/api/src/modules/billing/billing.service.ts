@@ -8,7 +8,7 @@ import type { SubscriptionInvoice, SubscriptionPayment, SubscriptionReceipt, Ten
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationService } from '../mail/notification.service';
-import { getPlan, PLANS, type PlanDefinition } from './plan-definitions';
+import { getPlan, getPublicPlans, type PlanDefinition } from './plan-definitions';
 import { buildSubscriptionInvoicePdf } from './subscription-invoice-pdf';
 import { buildSubscriptionReceiptPdf } from './subscription-receipt-pdf';
 import type { RecordSubscriptionPaymentDto } from './dto/record-payment.dto';
@@ -24,9 +24,9 @@ export class BillingService {
     private readonly notifications: NotificationService,
   ) {}
 
-  /** Return all plan definitions. */
+  /** Return plans available for new signups (excludes legacy/internal plans). */
   getPlans(): PlanDefinition[] {
-    return Object.values(PLANS);
+    return getPublicPlans();
   }
 
   /** Payment history for a specific tenant. */

@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: Lint · Typecheck · Test · Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      # Prisma is content-addressable on schema.prisma; this skips its
+      # "send anonymous telemetry" check and speeds up CI cold starts.
+      CHECKPOINT_DISABLE: "1"
+      # Required by NestJS config validation even when the API doesn't boot.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
+      JWT_ACCESS_SECRET: ci_access_secret_min_32_chars_long_for_validation_only
+      JWT_REFRESH_SECRET: ci_refresh_secret_min_32_chars_long_for_validation_only
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @autosphere/api prisma:generate
+
+      - name: Validate Prisma schema
+        run: pnpm --filter @autosphere/api exec prisma validate
+
+      - name: Lint
+        run: pnpm -r --if-present run lint
+
+      - name: Typecheck web
+        run: pnpm --filter @autosphere/web run typecheck
+
+      - name: Test
+        run: pnpm --filter @autosphere/api run test
+
+      - name: Build
+        run: pnpm -r run build

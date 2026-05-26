@@ -41,6 +41,29 @@ export interface AppConfig {
     cron: string;
     retentionDays: number;
   };
+  sentry: {
+    dsn: string;
+    environment: string;
+    tracesSampleRate: number;
+  };
+  uploads: {
+    cloudName: string;
+    apiKey: string;
+    apiSecret: string;
+    folder: string;
+    maxBytes: number;
+  };
+  stripe: {
+    secretKey: string;
+    publishableKey: string;
+    webhookSecret: string;
+    successUrl: string;
+    cancelUrl: string;
+    priceIds: {
+      STARTER: { monthly: string; annual: string };
+      BUSINESS: { monthly: string; annual: string };
+    };
+  };
 }
 
 export default (): AppConfig => ({
@@ -85,5 +108,34 @@ export default (): AppConfig => ({
     dir: process.env.BACKUP_DIR ?? './backups',
     cron: process.env.BACKUP_CRON ?? '0 2 * * *',
     retentionDays: parseInt(process.env.BACKUP_RETENTION_DAYS ?? '30', 10),
+  },
+  sentry: {
+    dsn: process.env.SENTRY_DSN ?? '',
+    environment: process.env.SENTRY_ENVIRONMENT ?? process.env.NODE_ENV ?? 'development',
+    tracesSampleRate: parseFloat(process.env.SENTRY_TRACES_SAMPLE_RATE ?? '0'),
+  },
+  uploads: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME ?? '',
+    apiKey: process.env.CLOUDINARY_API_KEY ?? '',
+    apiSecret: process.env.CLOUDINARY_API_SECRET ?? '',
+    folder: process.env.CLOUDINARY_UPLOAD_FOLDER ?? 'autosphere',
+    maxBytes: parseInt(process.env.UPLOAD_MAX_BYTES ?? '10485760', 10),
+  },
+  stripe: {
+    secretKey: process.env.STRIPE_SECRET_KEY ?? '',
+    publishableKey: process.env.STRIPE_PUBLISHABLE_KEY ?? '',
+    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? '',
+    successUrl: process.env.STRIPE_SUCCESS_URL ?? '',
+    cancelUrl: process.env.STRIPE_CANCEL_URL ?? '',
+    priceIds: {
+      STARTER: {
+        monthly: process.env.STRIPE_PRICE_STARTER_MONTHLY ?? '',
+        annual: process.env.STRIPE_PRICE_STARTER_ANNUAL ?? '',
+      },
+      BUSINESS: {
+        monthly: process.env.STRIPE_PRICE_BUSINESS_MONTHLY ?? '',
+        annual: process.env.STRIPE_PRICE_BUSINESS_ANNUAL ?? '',
+      },
+    },
   },
 });

@@ -1,11 +1,14 @@
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsDateString,
   IsEnum,
   IsInt,
   IsNumber,
   IsOptional,
   IsString,
+  IsUrl,
   Max,
   MaxLength,
   Min,
@@ -109,6 +112,12 @@ export class CreateVehicleDto {
   @IsOptional()
   @IsDateString()
   vignetteExpiry?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsUrl({}, { each: true })
+  photos?: string[];
 
   @IsOptional()
   @IsString()

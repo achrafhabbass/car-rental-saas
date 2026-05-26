@@ -26,6 +26,7 @@ import { ContractsService } from './contracts.service';
 import { CompleteContractDto } from './dto/complete-contract.dto';
 import { CreateContractDto } from './dto/create-contract.dto';
 import { ListContractsDto } from './dto/list-contracts.dto';
+import { SignContractDto } from './dto/sign-contract.dto';
 
 @ApiTags('Contracts')
 @Controller('contracts')
@@ -129,6 +130,16 @@ export class ContractsController {
   @Post(':id/cancel')
   cancel(@CurrentTenant() tenantId: string, @Param('id', ParseUUIDPipe) id: string) {
     return this.contracts.cancel(tenantId, id);
+  }
+
+  @Roles('ADMIN', 'MANAGER', 'EMPLOYEE')
+  @Post(':id/sign')
+  sign(
+    @CurrentTenant() tenantId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: SignContractDto,
+  ) {
+    return this.contracts.sign(tenantId, id, dto.signatureUrl);
   }
 
   @SkipEnvelope()

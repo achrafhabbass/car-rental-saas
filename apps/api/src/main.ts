@@ -8,11 +8,19 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { initSentry } from './common/sentry/sentry';
+
+// Sentry init must happen before the Nest app is created so the SDK can
+// auto-instrument http/express. No-op when SENTRY_DSN is unset.
+initSentry();
 
 async function bootstrap(): Promise<void> {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
+    // Stripe webhook signature verification requires the raw request body.
+    // Express's json parser destroys it; rawBody preserves a copy on req.rawBody.
+    rawBody: true,
   });
 
   const config = app.get(ConfigService);
@@ -24,7 +32,15 @@ async function bootstrap(): Promise<void> {
   app.setGlobalPrefix(prefix);
   app.use(helmet());
   app.enableCors({
-    origin: corsOrigin.split(',').map((o) => o.trim()),
+    origin: corsOrigin.split(',').map((o) => {
+      const trimmed = o.trim();
+      if (trimmed.includes('*')) {
+        // Convert wildcard pattern to RegExp (e.g. https://*.ngrok-free.app)
+        const escaped = trimmed.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '.*');
+        return new RegExp(`^${escaped}$`);
+      }
+      return trimmed;
+    }),
     credentials: true,
   });
 
@@ -69,6 +85,8 @@ async function bootstrap(): Promise<void> {
     .addTag('Billing', 'Facturation abonnements')
     .addTag('Backup', 'Sauvegardes système')
     .addTag('Email', 'Monitoring email')
+    .addTag('Uploads', 'Téléversement de fichiers (photos, signatures)')
+    .addTag('Stripe', 'Checkout, Customer Portal et webhooks Stripe')
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);

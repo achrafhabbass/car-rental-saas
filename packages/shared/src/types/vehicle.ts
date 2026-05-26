@@ -51,6 +51,7 @@ export interface CreateVehicleInput {
   insuranceExpiry?: string;
   technicalVisitExpiry?: string;
   vignetteExpiry?: string;
+  photos?: string[];
   notes?: string;
 }
 

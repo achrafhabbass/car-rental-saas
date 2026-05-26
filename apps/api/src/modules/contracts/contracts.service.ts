@@ -295,6 +295,25 @@ export class ContractsService {
     });
   }
 
+  /**
+   * Attach a client signature URL to the contract and stamp `signedAt`.
+   * The URL must point at an asset already stored via POST /uploads — we
+   * never receive the raw signature bytes here.
+   *
+   * Re-signing overwrites the previous URL and timestamp. Callers
+   * expecting a single-shot flow should gate the UI on `!contract.signedAt`.
+   */
+  async sign(tenantId: string, id: string, signatureUrl: string): Promise<RentalContract> {
+    const contract = await this.get(tenantId, id);
+    if (contract.status === 'CANCELLED') {
+      throw new ConflictException('Cannot sign a cancelled contract');
+    }
+    return this.prisma.rentalContract.update({
+      where: { id: contract.id },
+      data: { signatureUrl, signedAt: new Date() },
+    });
+  }
+
   async cancel(tenantId: string, id: string): Promise<RentalContract> {
     const contract = await this.get(tenantId, id);
     if (contract.status === 'COMPLETED') {

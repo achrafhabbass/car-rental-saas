@@ -21,6 +21,7 @@ export interface VehiclePerformanceDto {
   totalRevenue: number;
   contractCount: number;
   maintenanceCost: number;
+  creditCost: number;
   net: number;
 }
 

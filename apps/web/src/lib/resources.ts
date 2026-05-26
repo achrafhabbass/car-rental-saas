@@ -84,7 +84,6 @@ export const authApi = {
     api.post<AuthTokensDto & { userId: string; tenantId: string }>(
       '/auth/register',
       body,
-      { skipAuth: true },
     ),
   logout: () => api.post<void>('/auth/logout'),
   me: () => api.get<AuthProfileDto>('/auth/me'),
@@ -297,8 +296,16 @@ export const contractsApi = {
   complete: (id: string, body: { kmEnd: number; extraCharges?: number; actualReturnDate?: string; notes?: string }) =>
     api.post<RentalContractDto>(`/contracts/${id}/complete`, body),
   cancel: (id: string) => api.post<RentalContractDto>(`/contracts/${id}/cancel`),
+  sign: (id: string, signatureUrl: string) =>
+    api.post<RentalContractDto>(`/contracts/${id}/sign`, { signatureUrl }),
   /// PDF download path. Use with downloadFile() for the auth-aware blob.
   pdfPath: (id: string) => `/contracts/${id}/pdf`,
+};
+
+export const stripeApi = {
+  checkout: (body: { plan: 'STARTER' | 'BUSINESS'; period: 'monthly' | 'annual' }) =>
+    api.post<{ url: string; sessionId: string }>('/billing/stripe/checkout', body),
+  portal: () => api.post<{ url: string }>('/billing/stripe/portal'),
 };
 
 // -------- Payments --------
@@ -411,7 +418,10 @@ export const notificationsApi = {
 
 // -------- Analytics --------
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001/api/v1';
+const API_URL =
+  typeof window !== 'undefined'
+    ? '/api/v1'
+    : (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001/api/v1');
 
 export const analyticsApi = {
   dashboard: () => api.get<DashboardKpisDto>('/analytics/dashboard'),
@@ -442,6 +452,14 @@ export interface ListPlatformTenantsQuery extends PaginationQuery {
 
 export const platformApi = {
   metrics: () => api.get<PlatformMetricsDto>('/platform/metrics'),
+  createTenant: (body: {
+    companyName: string;
+    companySlug: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+  }) => authApi.register(body),
   listTenants: (q?: ListPlatformTenantsQuery) =>
     api.get<PaginatedResult<TenantDto>>(`/platform/tenants${qs(q)}`),
   getTenant: (id: string) =>

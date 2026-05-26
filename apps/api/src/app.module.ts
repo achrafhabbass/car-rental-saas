@@ -30,7 +30,9 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { PaymentsModule } from './modules/payments/payments.module';
 import { PlatformModule } from './modules/platform/platform.module';
 import { ReservationsModule } from './modules/reservations/reservations.module';
+import { StripeModule } from './modules/stripe/stripe.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
+import { UploadsModule } from './modules/uploads/uploads.module';
 import { UsersModule } from './modules/users/users.module';
 import { VehicleCreditsModule } from './modules/vehicle-credits/vehicle-credits.module';
 import { VehiclesModule } from './modules/vehicles/vehicles.module';
@@ -92,6 +94,8 @@ import { PrismaModule } from './prisma/prisma.module';
     BillingModule,
     SoftDeleteModule,
     LeadsModule,
+    UploadsModule,
+    StripeModule,
   ],
   providers: [
     TenantMiddleware,

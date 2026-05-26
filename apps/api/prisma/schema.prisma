@@ -287,6 +287,9 @@ model Tenant {
   subscriptionStart DateTime?    @db.Date
   subscriptionEnd   DateTime?    @db.Date
   trialEndsAt       DateTime?
+  // Stripe customer + active subscription, populated by checkout.session.completed.
+  stripeCustomerId     String?  @unique @db.VarChar(64)
+  stripeSubscriptionId String?  @unique @db.VarChar(64)
   metadata          Json?
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
@@ -398,6 +401,7 @@ model User {
   emailVerifiedAt DateTime?
   mfaEnabled      Boolean    @default(false)
   mfaSecret       String?    @db.VarChar(255)
+  mustChangePassword Boolean @default(false)
   lastLoginAt     DateTime?
   metadata        Json?
   createdAt       DateTime   @default(now())
@@ -1031,4 +1035,17 @@ model PlatformAuditLog {
   @@index([tenantId])
   @@index([createdAt])
   @@map("platform_audit_logs")
+}
+
+/// Stripe webhook event log — Stripe retries failed deliveries, so we
+/// dedupe by event id. The presence of a row means "this event was
+/// already processed; ignore it." Persistent so dedup survives restarts.
+model StripeEvent {
+  id          String   @id @db.VarChar(64)
+  type        String   @db.VarChar(64)
+  processedAt DateTime @default(now())
+
+  @@index([type])
+  @@index([processedAt])
+  @@map("stripe_events")
 }

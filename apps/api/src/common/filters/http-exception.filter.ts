@@ -8,6 +8,13 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 
+import { Sentry } from '../sentry/sentry';
+
+interface AuthedRequest extends Request {
+  user?: { id?: string; tenantId?: string | null; role?: string };
+  tenantId?: string;
+}
+
 interface ErrorResponseBody {
   statusCode: number;
   message: string | string[];
@@ -24,7 +31,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
+    const request = ctx.getRequest<AuthedRequest>();
 
     const { status, message, error } = this.extractError(exception);
 
@@ -41,6 +48,21 @@ export class HttpExceptionFilter implements ExceptionFilter {
         `[${request.method}] ${request.url} → ${status} ${error}`,
         exception instanceof Error ? exception.stack : undefined,
       );
+      // Forward to Sentry. No-op when SENTRY_DSN is unset.
+      Sentry.withScope((scope) => {
+        scope.setTag('http.method', request.method);
+        scope.setTag('http.status', String(status));
+        scope.setContext('request', {
+          url: request.url,
+          method: request.method,
+        });
+        const tenantId = request.user?.tenantId ?? request.tenantId;
+        if (tenantId) scope.setTag('tenant', tenantId);
+        if (request.user?.id) {
+          scope.setUser({ id: request.user.id });
+        }
+        Sentry.captureException(exception);
+      });
     } else {
       this.logger.warn(`[${request.method}] ${request.url} → ${status} ${error}`);
     }

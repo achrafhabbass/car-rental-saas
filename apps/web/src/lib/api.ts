@@ -2,7 +2,13 @@ import type { ApiEnvelope, ApiErrorEnvelope, AuthTokensDto } from '@autosphere/s
 
 import { session } from './session';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001/api/v1';
+// In the browser, use relative URL so requests go through the Next.js proxy
+// (rewrites in next.config.mjs forward /api/v1/* to the backend).
+// On the server (SSR), use the full URL.
+const API_URL =
+  typeof window !== 'undefined'
+    ? '/api/v1'
+    : (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001/api/v1');
 
 export class ApiError extends Error {
   /** Set to 'PLAN_LIMIT_EXCEEDED' when the error is a plan quota violation. */
@@ -132,6 +138,37 @@ export const api = {
   delete: <T>(path: string, opts?: ApiOptions) =>
     apiFetch<T>(path, { ...opts, method: 'DELETE' }),
 };
+
+/**
+ * Upload a single file to /uploads (multipart). Returns the stored asset URL.
+ * Uses the same auth + tenant headers as `apiFetch` but skips the JSON
+ * Content-Type so the browser can set the multipart boundary itself.
+ */
+export async function uploadFile<T>(
+  file: File,
+  opts: { kind?: string } = {},
+): Promise<T> {
+  const url = `${API_URL}/uploads${opts.kind ? `?kind=${encodeURIComponent(opts.kind)}` : ''}`;
+
+  const form = new FormData();
+  form.append('file', file);
+
+  const headers: Record<string, string> = { Accept: 'application/json' };
+  const token = session.getAccessToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const tenant = session.getTenantId();
+  if (tenant) headers['x-tenant-id'] = tenant;
+
+  const res = await fetch(url, { method: 'POST', headers, body: form });
+  const text = await res.text();
+  const payload = text ? (JSON.parse(text) as unknown) : null;
+
+  if (!res.ok) {
+    throw new ApiError(res.status, payload as ApiErrorEnvelope);
+  }
+  if (payload === null) return undefined as T;
+  return (payload as ApiEnvelope<T>).data;
+}
 
 /// Triggers a browser download for an authenticated file endpoint.
 /// Fetches the response as text (CSV), wraps it in a blob, and clicks an
