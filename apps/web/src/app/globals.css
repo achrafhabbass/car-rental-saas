@@ -2,75 +2,179 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-}
-
 html,
 body {
   height: 100%;
 }
 
 body {
-  font-family: var(--font-sans);
+  font-family: var(--font-jakarta), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
-  color: #0f172a;
-  background-color: #f8fafc;
+  color: #1A1D2E;
+  /* Cream canvas anchored by a cobalt-blue bloom top-left and a navy
+     hint bottom-right. Same warm canvas, blue ambient. */
+  background-color: #FBF6EE;
+  background-image:
+    radial-gradient(circle at 15% 0%, rgba(30, 85, 232, 0.06), transparent 40%),
+    radial-gradient(circle at 100% 100%, rgba(22, 26, 44, 0.04), transparent 50%);
+  background-attachment: fixed;
+  font-feature-settings: 'ss01', 'cv11';
+}
+
+@layer base {
+  /* Default headings render in Fraunces — the editorial display face. */
+  h1, h2, h3 {
+    font-family: var(--font-fraunces), Georgia, serif;
+    letter-spacing: -0.02em;
+    font-variation-settings: 'opsz' 144;
+  }
 }
 
 @layer utilities {
-  .scrollbar-thin {
-    scrollbar-width: thin;
+  .scrollbar-thin { scrollbar-width: thin; }
+
+  /* Italicized accent word inside a serif title — matches "Bonjour, *Achraf*"
+     and "Flotte *en service*" patterns. Now in cobalt blue. */
+  .em-ember {
+    font-style: italic;
+    font-weight: 400;
+    color: #1E55E8;
   }
 
+  /* Gradient text fill — cobalt → sky. */
+  .text-gradient {
+    background: linear-gradient(135deg, #1E55E8 0%, #5B8DEF 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Strong frosted-glass surface used by the marketing navbar. */
+  .glass-strong {
+    background-color: rgba(251, 246, 238, 0.85);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid #E8DFCF;
+  }
+
+  /* Mesh background — cobalt + sky blooms on cream. */
+  .bg-mesh-light {
+    background-image:
+      radial-gradient(at 20% 0%, rgba(30, 85, 232, 0.18) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, rgba(91, 141, 239, 0.14) 0px, transparent 50%),
+      radial-gradient(at 50% 100%, rgba(22, 26, 44, 0.06) 0px, transparent 50%);
+  }
+
+  /* Subtle dot grid for hero backgrounds. */
+  .bg-grid-slate {
+    background-image:
+      linear-gradient(rgba(22, 26, 44, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(22, 26, 44, 0.05) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
   .bg-grid-white {
     background-image:
-      linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+      linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
     background-size: 36px 36px;
   }
 
-  .bg-radial-glow {
-    background: radial-gradient(circle at 30% 20%, rgba(59, 130, 246, 0.35), transparent 50%),
-      radial-gradient(circle at 80% 80%, rgba(245, 158, 11, 0.22), transparent 45%);
+  /* Cobalt brand gradient — kept under the legacy `grad-primary` name. */
+  .bg-grad-primary {
+    background-image: linear-gradient(135deg, #1E55E8 0%, #5B8DEF 100%);
   }
 
-  .perspective-1000 {
-    perspective: 1000px;
+  /* ─── Hard-CSS surface utilities ────────────────────────────────────
+     Declared here so they always land in the compiled CSS regardless of
+     Tailwind JIT scan paths. Class names kept stable (`bg-ember-*`,
+     `text-ember-*`, `bg-grad-ember`) while their VALUES now resolve to
+     cobalt blue — zero per-file class renames required. */
+  .bg-navy { background-color: #161A2C; }
+  .bg-navy-soft { background-color: #232843; }
+  .bg-grad-navy {
+    background-image: linear-gradient(135deg, #161A2C 0%, #232843 100%);
+    background-color: #161A2C;
+  }
+  .bg-grad-ember {
+    background-image: linear-gradient(135deg, #1E55E8 0%, #5B8DEF 100%);
+    background-color: #1E55E8;
+  }
+  .bg-cream { background-color: #FBF6EE; }
+  .bg-cream-deep { background-color: #F5EDDF; }
+  .bg-paper { background-color: #FFFEFB; }
+  .text-ink { color: #1A1D2E; }
+  .text-ink-soft { color: #4B5066; }
+  .text-ink-mute { color: #8B8FA3; }
+  .text-ember-500 { color: #1E55E8; }
+  .text-ember-600 { color: #1745C0; }
+  .text-ember-glow { color: #5B8DEF; }
+  .text-emerald { color: #0F8A65; }
+  .text-amber { color: #D97706; }
+  .text-rose { color: #C8345C; }
+  .text-sky { color: #2563A8; }
+  .text-navy { color: #161A2C; }
+  .border-line { border-color: #E8DFCF; }
+  .border-line-soft { border-color: #F0E8D8; }
+  .border-navy { border-color: #161A2C; }
+  .bg-ember-50 { background-color: #EEF3FE; }
+  .bg-ember-100 { background-color: #D6E1FC; }
+  .bg-emerald-soft { background-color: #D6F0E3; }
+  .bg-amber-soft { background-color: #FCE8C5; }
+  .bg-rose-soft { background-color: #FBE0E6; }
+  .bg-sky-soft { background-color: #D8E7F6; }
+
+  /* Eyebrow with leading bar — uppercase mini-kicker above titles. Cobalt now. */
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #1E55E8;
+  }
+  .eyebrow::before {
+    content: '';
+    width: 24px;
+    height: 1.5px;
+    background: #1E55E8;
   }
 
-  .preserve-3d {
-    transform-style: preserve-3d;
+  .divide-warm > * + * {
+    border-top: 1px dashed #E8DFCF;
   }
 }
 
-@keyframes blob {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -20px) scale(1.05); }
-  66% { transform: translate(-20px, 20px) scale(0.95); }
-}
-
-@keyframes float-slow {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-14px) rotate(-1.5deg); }
-}
-
-@keyframes tilt {
-  0%, 100% { transform: rotateX(10deg) rotateY(-15deg); }
-  50% { transform: rotateX(12deg) rotateY(-10deg); }
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(12px); }
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes blob {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(20px, -16px) scale(1.04); }
+  66% { transform: translate(-16px, 14px) scale(0.97); }
+}
 
-.animate-blob { animation: blob 14s ease-in-out infinite; }
+.animate-fade-in { animation: fade-in 0.6s ease forwards; }
+.animate-fade-up { animation: fade-in 0.6s ease-out both; }
+.animate-pulse-soft { animation: pulse-soft 2.4s ease-in-out infinite; }
 .animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
-.animate-tilt { animation: tilt 8s ease-in-out infinite; }
-.animate-fade-up { animation: fade-up 0.6s ease-out both; }
+.animate-blob { animation: blob 14s ease-in-out infinite; }
+
+/* Cobalt-tinted scrollbar. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(30, 85, 232, 0.18);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(30, 85, 232, 0.32); }

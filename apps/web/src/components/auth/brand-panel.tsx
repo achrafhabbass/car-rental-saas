@@ -14,29 +14,37 @@ const FEATURES = [
 
 export function BrandPanel() {
   return (
-    <section className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-gradient-to-br from-primary-700 via-primary-600 to-primary-900 p-12 text-white">
-      {/* Ambient glows */}
-      <div className="pointer-events-none absolute inset-0 bg-radial-glow" aria-hidden="true" />
+    <section className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-gradient-to-br from-navy via-navy-soft to-navy-900 p-12 text-white">
+      {/* Ember + glow radial blooms — mirrors the sidebar's ambient glow. */}
       <div
-        className="pointer-events-none absolute -top-24 -left-24 h-96 w-96 rounded-full bg-secondary/40 blur-3xl animate-blob"
+        className="pointer-events-none absolute inset-0"
+        aria-hidden="true"
+        style={{
+          background:
+            'radial-gradient(circle at 30% 20%, rgba(30,85,232,0.35), transparent 50%), radial-gradient(circle at 80% 80%, rgba(91,141,239,0.18), transparent 45%)',
+        }}
+      />
+      <div
+        className="pointer-events-none absolute -top-24 -left-24 h-96 w-96 rounded-full bg-ember-500/30 blur-3xl animate-blob"
         aria-hidden="true"
       />
       <div
-        className="pointer-events-none absolute -bottom-32 -right-10 h-96 w-96 rounded-full bg-accent/30 blur-3xl animate-blob"
+        className="pointer-events-none absolute -bottom-32 -right-10 h-96 w-96 rounded-full bg-ember-glow/20 blur-3xl animate-blob"
         style={{ animationDelay: '-6s' }}
         aria-hidden="true"
       />
-      <div className="pointer-events-none absolute inset-0 bg-grid-white opacity-40" aria-hidden="true" />
 
       {/* Header */}
       <div className="relative z-10 flex items-center gap-3">
-        <div className="h-11 w-11 rounded-xl bg-white/10 backdrop-blur-md ring-1 ring-white/20 flex items-center justify-center shadow-lg">
-          <span className="text-lg font-black tracking-tight">A</span>
+        <div className="h-11 w-11 rounded-xl bg-grad-ember grid place-items-center shadow-[0_8px_20px_-4px_rgba(30,85,232,0.5),inset_0_1px_0_rgba(255,255,255,0.3)]">
+          <span className="font-display text-lg font-semibold tracking-tight text-white">
+            A
+          </span>
         </div>
         <div>
-          <p className="text-lg font-bold tracking-tight">AutoSphere</p>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-primary-100">
-            Car Rental · SaaS
+          <p className="font-display text-xl font-semibold tracking-tight">AutoSphere</p>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-white/45 font-semibold mt-0.5">
+            Fleet Platform
           </p>
         </div>
       </div>
@@ -85,7 +93,7 @@ export function BrandPanel() {
               {[40, 65, 48, 82, 58, 90, 72, 95, 68, 84, 58, 78].map((h, i) => (
                 <div
                   key={i}
-                  className="flex-1 rounded-sm bg-gradient-to-t from-secondary to-secondary/40"
+                  className="flex-1 rounded-sm bg-gradient-to-t from-ember-500 to-ember-glow/40"
                   style={{ height: `${h}%` }}
                 />
               ))}
@@ -100,7 +108,7 @@ export function BrandPanel() {
             className="absolute -left-6 -bottom-8 rounded-xl bg-white/95 text-slate-900 px-4 py-3 shadow-2xl ring-1 ring-black/5 flex items-center gap-3"
             style={{ transform: 'translateZ(50px) rotate(-4deg)' }}
           >
-            <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-accent to-amber-500 flex items-center justify-center text-white shadow-md">
+            <div className="h-9 w-9 rounded-lg bg-grad-ember grid place-items-center text-white shadow-md">
               {/* Car icon */}
               <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
                 <path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11h1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-1v1a1 1 0 1 1-2 0v-1H7v1a1 1 0 1 1-2 0v-1H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h1zm2 0h10l-1.1-3.3a.5.5 0 0 0-.5-.37H8.6a.5.5 0 0 0-.5.37L7 11zm-.5 4.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm11 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" />

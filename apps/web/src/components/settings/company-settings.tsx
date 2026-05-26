@@ -7,22 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field, Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/table';
-import { ApiError } from '@/lib/api';
+import { ApiError, uploadFile } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { tenantSelfApi } from '@/lib/resources';
 import { useToast } from '@/lib/toast-context';
+import type { UploadResponseDto } from '@autosphere/shared';
 
-const MAX_LOGO_BYTES = 512 * 1024; // 512 KB raw
-const ACCEPTED = ['image/png', 'image/jpeg'];
-
-function readAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Lecture du fichier échouée'));
-    reader.onload = () => resolve(String(reader.result));
-    reader.readAsDataURL(file);
-  });
-}
+const MAX_LOGO_BYTES = 2 * 1024 * 1024; // 2 MB — Cloudinary will store the asset
+const ACCEPTED = ['image/png', 'image/jpeg', 'image/webp'];
 
 interface LegalFields {
   city: string;
@@ -94,13 +86,13 @@ export function CompanySettings() {
       return;
     }
     try {
-      const dataUrl = await readAsDataUrl(f);
-      setPendingLogo(dataUrl);
-      setLogoPreview(dataUrl);
+      const result = await uploadFile<UploadResponseDto>(f, { kind: 'logo' });
+      setPendingLogo(result.url);
+      setLogoPreview(result.url);
     } catch (err) {
       toast.error(
-        'Impossible de lire le fichier',
-        err instanceof Error ? err.message : 'Erreur inconnue',
+        'Téléversement échoué',
+        err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Erreur inconnue',
       );
     }
   }

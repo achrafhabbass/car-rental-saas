@@ -2,20 +2,26 @@ import { forwardRef, type ButtonHTMLAttributes } from 'react';
 
 import { cn } from '@/lib/utils';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'accent';
 type Size = 'sm' | 'md' | 'lg';
 
+// Primary = navy rest → ember hover. Mirrors the mockup's `.btn-primary`.
+// The ember shadow on hover is the signature visual lift.
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-primary-500 text-white hover:bg-primary-600 shadow-sm',
-  secondary: 'bg-white text-slate-900 ring-1 ring-slate-200 hover:bg-slate-50 shadow-sm',
-  ghost: 'bg-transparent text-slate-700 hover:bg-slate-100',
-  danger: 'bg-danger text-white hover:bg-red-600 shadow-sm',
+  primary:
+    'bg-navy text-white shadow-warm hover:bg-ember-500 hover:-translate-y-0.5 hover:shadow-ember active:translate-y-0',
+  secondary:
+    'bg-paper text-ink ring-1 ring-line hover:ring-ink hover:-translate-y-0.5 transition-transform',
+  ghost: 'bg-transparent text-ink hover:bg-cream-deep',
+  // Ember-first when you want the orange to lead (CTAs on the landing).
+  accent: 'bg-ember-500 text-white shadow-warm hover:bg-ember-600 hover:shadow-ember',
+  danger: 'bg-rose text-white shadow-warm hover:bg-rose/90',
 };
 
 const SIZES: Record<Size, string> = {
-  sm: 'h-8 px-3 text-xs',
-  md: 'h-10 px-4 text-sm',
-  lg: 'h-12 px-6 text-base',
+  sm: 'h-9 px-3 text-xs gap-1.5',
+  md: 'h-11 px-5 text-sm gap-2',
+  lg: 'h-12 px-6 text-base gap-2',
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -33,7 +39,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       ref={ref}
       disabled={disabled || loading}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary-500/20',
+        'inline-flex items-center justify-center rounded-xl font-semibold transition-all duration-200',
+        'disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0 disabled:shadow-none',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-ember-500/30 focus-visible:ring-offset-2 focus-visible:ring-offset-cream',
         VARIANTS[variant],
         SIZES[size],
         className,
@@ -41,7 +49,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       {...props}
     >
       {loading && (
-        <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+        <span className="h-3 w-3 animate-spin rounded-full border-2 border-current/30 border-t-current" />
       )}
       {children}
     </button>

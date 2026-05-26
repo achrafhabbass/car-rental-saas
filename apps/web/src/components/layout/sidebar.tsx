@@ -29,7 +29,6 @@ interface NavItem {
   href: string;
   label: string;
   icon: typeof LayoutDashboard;
-  /// Key into the badges context used to render a counter pill.
   badgeKey?: 'alerts' | 'reservationsToday' | 'contractsOverdue';
 }
 
@@ -39,26 +38,14 @@ interface NavSection {
 }
 
 const SECTIONS: NavSection[] = [
-  {
-    items: [{ href: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard }],
-  },
+  { items: [{ href: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard }] },
   {
     title: 'Opérations',
     items: [
       { href: '/vehicles', label: 'Véhicules', icon: Car },
       { href: '/clients', label: 'Clients', icon: Users },
-      {
-        href: '/reservations',
-        label: 'Réservations',
-        icon: CalendarDays,
-        badgeKey: 'reservationsToday',
-      },
-      {
-        href: '/contracts',
-        label: 'Contrats',
-        icon: FileText,
-        badgeKey: 'contractsOverdue',
-      },
+      { href: '/reservations', label: 'Réservations', icon: CalendarDays, badgeKey: 'reservationsToday' },
+      { href: '/contracts', label: 'Contrats', icon: FileText, badgeKey: 'contractsOverdue' },
       { href: '/calendar', label: 'Calendrier', icon: CalendarRange },
     ],
   },
@@ -96,20 +83,10 @@ const PLATFORM_ITEMS: NavItem[] = [
   { href: '/platform/system', label: 'Système', icon: Settings },
 ];
 
-function CountBadge({ count, tone }: { count: number; tone: 'red' | 'amber' | 'blue' }) {
+function CountBadge({ count }: { count: number }) {
   if (count <= 0) return null;
-  const palette: Record<string, string> = {
-    red: 'bg-danger text-white',
-    amber: 'bg-amber-500 text-white',
-    blue: 'bg-secondary text-white',
-  };
   return (
-    <span
-      className={cn(
-        'ml-auto inline-flex items-center justify-center rounded-full px-1.5 text-[10px] font-bold min-w-[18px] h-[18px]',
-        palette[tone],
-      )}
-    >
+    <span className="ml-auto inline-flex items-center justify-center rounded-lg bg-ember-500 text-white text-[10px] font-bold px-1.5 py-0.5 min-w-[18px]">
       {count > 99 ? '99+' : count}
     </span>
   );
@@ -129,78 +106,97 @@ export function Sidebar() {
   function renderItem({ href, label, icon: Icon, badgeKey }: NavItem) {
     const active = isActive(href);
     const count = badgeKey ? badges[badgeKey] : 0;
-    const tone: 'red' | 'amber' | 'blue' =
-      badgeKey === 'contractsOverdue' ? 'red' : badgeKey === 'alerts' ? 'amber' : 'blue';
     return (
       <li key={href}>
         <Link
           href={href}
           className={cn(
-            'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition',
+            'relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200',
             active
-              ? 'bg-primary-50 text-primary-700'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+              ? // Active = ember gradient pill + left rail. Matches the
+                // mockup's `.nav-item.active` exactly.
+                'bg-gradient-to-r from-ember-500/95 to-ember-600/85 text-white shadow-[0_8px_18px_-8px_rgba(30,85,232,0.7)]'
+              : 'text-white/65 hover:bg-white/5 hover:text-white',
           )}
         >
-          <Icon
-            className={cn(
-              'h-4 w-4 transition',
-              active ? 'text-primary-500' : 'text-slate-400 group-hover:text-primary-500',
-            )}
-          />
+          {active && (
+            <span className="absolute -left-5 top-1/2 -translate-y-1/2 w-[3px] h-[22px] bg-ember-glow rounded-r" />
+          )}
+          <Icon className="h-[18px] w-[18px] shrink-0" />
           <span className="flex-1">{label}</span>
-          {badgeKey ? <CountBadge count={count} tone={tone} /> : null}
+          {badgeKey && (
+            <span
+              className={cn(
+                'ml-auto inline-flex items-center justify-center rounded-lg text-[10px] font-bold px-1.5 py-0.5 min-w-[18px]',
+                active ? 'bg-white/25 text-white' : 'bg-ember-500 text-white',
+              )}
+            >
+              {count > 0 ? (count > 99 ? '99+' : count) : null}
+            </span>
+          )}
+          {!badgeKey && null}
+          {badgeKey && count === 0 && (
+            <CountBadge count={0} /> /* invisible — keeps spacing */
+          )}
         </Link>
       </li>
     );
   }
 
   return (
-    <aside className="hidden lg:flex lg:flex-col w-64 shrink-0 border-r border-slate-200 bg-white">
-      <div className="h-16 flex items-center px-6 border-b border-slate-200">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-primary-500 flex items-center justify-center text-white font-bold text-sm">
-            A
+    <aside
+      className="hidden lg:flex lg:flex-col w-[280px] shrink-0 text-white relative overflow-hidden"
+      style={{ backgroundColor: '#161A2C' }}
+    >
+      {/* Decorative warm glow blooms — pulled from the mockup's `::before`
+          on `.sidebar`. Ember at top-left, soft glow at bottom-right. */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        aria-hidden="true"
+        style={{
+          background:
+            'radial-gradient(circle at 20% 0%, rgba(30,85,232,0.18), transparent 50%), radial-gradient(circle at 80% 100%, rgba(91,141,239,0.08), transparent 50%)',
+        }}
+      />
+
+      <div className="relative">
+        {/* Brand */}
+        <div className="px-7 pt-7 pb-7 flex items-center gap-3 border-b border-white/10 mx-5">
+          <div className="relative w-10 h-10 rounded-xl bg-grad-ember grid place-items-center shadow-[0_8px_20px_-4px_rgba(30,85,232,0.5),inset_0_1px_0_rgba(255,255,255,0.3)]">
+            <Car className="h-5 w-5 text-white" />
           </div>
-          <span className="font-semibold text-slate-900">AutoSphere</span>
-        </Link>
+          <div>
+            <p className="font-display text-[22px] font-semibold tracking-tight leading-none">
+              AutoSphere
+            </p>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-white/45 font-medium mt-1">
+              Fleet Platform
+            </p>
+          </div>
+        </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-4 px-3 scrollbar-thin">
+      <nav className="relative flex-1 overflow-y-auto py-5 px-5 scrollbar-thin">
         {SECTIONS.map((section, idx) => (
-          <div key={idx} className={idx === 0 ? '' : 'mt-5'}>
+          <div key={idx} className={idx === 0 ? '' : 'mt-6'}>
             {section.title && (
-              <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40 px-3 mb-2.5">
                 {section.title}
               </p>
             )}
             <ul className="space-y-0.5">{section.items.map(renderItem)}</ul>
-            {idx < SECTIONS.length - 1 && (
-              <div className="mt-4 mx-3 border-b border-slate-100" />
-            )}
           </div>
         ))}
 
         {isSuperAdmin && (
-          <div className="mt-5">
-            <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+          <div className="mt-6">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ember-glow/70 px-3 mb-2.5">
               Platform
             </p>
             <ul className="space-y-0.5">{PLATFORM_ITEMS.map(renderItem)}</ul>
           </div>
         )}
       </nav>
-
-      <div className="p-4 border-t border-slate-200">
-        <div className="rounded-lg bg-primary-50 p-3">
-          <p className="text-xs font-semibold text-primary-700">
-            {isSuperAdmin ? 'Super-admin' : 'Espace pro'}
-          </p>
-          <p className="text-xs text-primary-600 mt-1">
-            {isSuperAdmin ? 'Accès plateforme' : `Connecté en tant que ${user?.role ?? '—'}`}
-          </p>
-        </div>
-      </div>
     </aside>
   );
 }

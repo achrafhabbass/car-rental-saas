@@ -7,6 +7,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card';
+import { ImageUploader } from '@/components/ui/image-uploader';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 import { ApiError } from '@/lib/api';
@@ -26,6 +27,7 @@ export default function EditVehiclePage() {
   const canDelete = hasRole('ADMIN');
 
   const [vehicle, setVehicle] = useState<VehicleDto | null>(null);
+  const [photos, setPhotos] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +36,10 @@ export default function EditVehiclePage() {
     if (!id) return;
     vehiclesApi
       .get(id)
-      .then(setVehicle)
+      .then((v) => {
+        setVehicle(v);
+        setPhotos(v.photos ?? []);
+      })
       .catch((err: unknown) =>
         setError(err instanceof ApiError ? err.message : 'Chargement échoué'),
       );
@@ -65,9 +70,11 @@ export default function EditVehiclePage() {
         technicalVisitExpiry: String(fd.get('technicalVisitExpiry') || '') || undefined,
         vignetteExpiry: String(fd.get('vignetteExpiry') || '') || undefined,
         status: String(fd.get('status')) as VehicleStatusName,
+        photos,
         notes: String(fd.get('notes') || '') || undefined,
       });
       setVehicle(updated);
+      setPhotos(updated.photos ?? []);
       router.refresh();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Mise à jour échouée');
@@ -277,6 +284,16 @@ export default function EditVehiclePage() {
                 <Field label="Notes" htmlFor="notes">
                   <Textarea id="notes" name="notes" rows={3} defaultValue={vehicle.notes ?? ''} />
                 </Field>
+              </div>
+              <div className="md:col-span-3">
+                <ImageUploader
+                  value={photos}
+                  onChange={setPhotos}
+                  kind="vehicle"
+                  max={8}
+                  label="Photos du véhicule"
+                  disabled={!canEdit}
+                />
               </div>
             </CardBody>
           </Card>

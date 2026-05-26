@@ -26,7 +26,13 @@ export default function LoginPage() {
       router.push('/dashboard');
       router.refresh();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Connexion échouée');
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Connexion échouée');
+      }
     } finally {
       setLoading(false);
     }
@@ -36,26 +42,28 @@ export default function LoginPage() {
     <div>
       {/* Mobile brand (lg:hidden) */}
       <div className="lg:hidden flex items-center gap-3 mb-8">
-        <div className="h-10 w-10 rounded-xl bg-primary-500 flex items-center justify-center text-white font-bold shadow-md">
+        <div className="h-10 w-10 rounded-xl bg-grad-ember grid place-items-center text-white font-bold shadow-md">
           A
         </div>
         <div>
-          <p className="font-bold text-slate-900">AutoSphere</p>
-          <p className="text-[11px] uppercase tracking-wider text-slate-500">
-            Car Rental · SaaS
+          <p className="font-display text-xl font-semibold tracking-tight text-ink">
+            AutoSphere
+          </p>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-ink-mute font-semibold">
+            Fleet Platform
           </p>
         </div>
       </div>
 
-      <div className="inline-flex items-center gap-2 rounded-full bg-primary-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary-700 ring-1 ring-primary-100">
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+      <div className="inline-flex items-center gap-2 rounded-full bg-ember-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-ember-700 ring-1 ring-ember-100">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald animate-pulse-soft" />
         Plateforme sécurisée
       </div>
 
-      <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-900">
-        Se connecter à votre compte
+      <h1 className="mt-5 font-display text-4xl font-medium tracking-tight leading-tight text-ink">
+        Bon retour <span className="em-ember">parmi nous</span>
       </h1>
-      <p className="mt-2 text-sm text-slate-500">
+      <p className="mt-3 text-[15px] text-ink-soft">
         Reprenez la main sur votre flotte, vos clients et vos contrats.
       </p>
 
@@ -110,25 +118,14 @@ export default function LoginPage() {
           </div>
         )}
 
-        <Button
-          type="submit"
-          loading={loading}
-          size="lg"
-          className="w-full group bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600 shadow-lg shadow-primary-500/20"
-        >
+        <Button type="submit" loading={loading} size="lg" className="w-full group">
           <span>Se connecter</span>
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
         </Button>
       </form>
 
-      <p className="mt-10 text-center text-sm text-slate-500">
-        Pas encore de compte ?{' '}
-        <Link
-          href="/register"
-          className="font-semibold text-secondary hover:underline underline-offset-2"
-        >
-          Créer un compte →
-        </Link>
+      <p className="mt-10 text-center text-sm text-slate-400">
+        Contactez votre administrateur pour obtenir un accès.
       </p>
     </div>
   );

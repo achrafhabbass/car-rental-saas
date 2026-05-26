@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ClipboardCheck,
   FileDown,
+  PenLine,
   PiggyBank,
   RotateCcw,
 } from 'lucide-react';
@@ -14,6 +15,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
 import { PartiesCard } from '@/components/business/parties-card';
+import { SignatureModal } from '@/components/business/signature-modal';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -90,6 +92,7 @@ export default function ContractDetailPage() {
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [depositOpen, setDepositOpen] = useState<null | 'collect' | 'refund-partial' | 'consume'>(null);
   const [depositAmount, setDepositAmount] = useState(0);
+  const [signOpen, setSignOpen] = useState(false);
   const [depositMethod, setDepositMethod] = useState<'CASH' | 'CHECK' | 'CARD' | 'CARD_IMPRINT' | 'BANK_TRANSFER'>('CASH');
 
   const load = useCallback(() => {
@@ -133,6 +136,19 @@ export default function ContractDetailPage() {
       setError(err instanceof ApiError ? err.message : 'Clôture échouée');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function onSigned(signatureUrl: string): Promise<void> {
+    if (!id) return;
+    try {
+      await contractsApi.sign(id, signatureUrl);
+      toast.success('Contrat signé', 'La signature a été enregistrée.');
+      load();
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : 'Échec de l\'enregistrement';
+      setError(msg);
+      toast.error('Signature échouée', msg);
     }
   }
 
@@ -252,6 +268,16 @@ export default function ContractDetailPage() {
         actions={
           <div className="flex items-center gap-2">
             <Badge tone={STATUS_TONE[c.status] ?? 'slate'}>{c.status}</Badge>
+            {c.status !== 'CANCELLED' && (
+              <Button
+                variant={c.signedAt ? 'secondary' : 'primary'}
+                onClick={() => setSignOpen(true)}
+                disabled={busy}
+              >
+                <PenLine className="h-4 w-4" />
+                {c.signedAt ? 'Re-signer' : 'Signer'}
+              </Button>
+            )}
             <Button variant="secondary" onClick={downloadPdf} loading={downloading}>
               <FileDown className="h-4 w-4" />
               Imprimer le contrat (PDF)
@@ -548,6 +574,13 @@ export default function ContractDetailPage() {
         loading={busy}
         onConfirm={confirmCancelAction}
         onCancel={() => setConfirmCancel(false)}
+      />
+
+      <SignatureModal
+        open={signOpen}
+        onClose={() => setSignOpen(false)}
+        onSigned={onSigned}
+        title={`Signature — ${c.contractNumber}`}
       />
     </div>
   );

@@ -2,6 +2,7 @@
 
 import {
   Building2,
+  CreditCard,
   Globe,
   KeyRound,
   LogOut,
@@ -13,6 +14,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
+import { BillingSettings } from '@/components/settings/billing-settings';
 import { CompanySettings } from '@/components/settings/company-settings';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card';
@@ -59,6 +61,7 @@ function SectionNav({
 }) {
   const items = [
     { id: 'company', label: 'Entreprise', icon: Building2 },
+    { id: 'billing', label: 'Abonnement', icon: CreditCard },
     { id: 'profile', label: 'Compte utilisateur', icon: UserCog },
     { id: 'prefs', label: 'Préférences', icon: Globe },
     { id: 'security', label: 'Sécurité', icon: ShieldCheck },
@@ -92,9 +95,9 @@ export default function SettingsPage() {
   const toast = useToast();
   const { user, refreshUser, logout } = useAuth();
 
-  const [section, setSection] = useState<'company' | 'profile' | 'prefs' | 'security'>(
-    'profile',
-  );
+  const [section, setSection] = useState<
+    'company' | 'billing' | 'profile' | 'prefs' | 'security'
+  >('profile');
 
   // Profile
   const [firstName, setFirstName] = useState(user?.firstName ?? '');
@@ -214,6 +217,8 @@ export default function SettingsPage() {
 
         <div className="space-y-6">
           {section === 'company' && <CompanySettings />}
+
+          {section === 'billing' && <BillingSettings />}
 
           {section === 'profile' && (
             <Card>

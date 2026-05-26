@@ -5,6 +5,7 @@ import { useState, type FormEvent } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card';
+import { ImageUploader } from '@/components/ui/image-uploader';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 import { ApiError } from '@/lib/api';
@@ -14,6 +15,7 @@ export default function NewVehiclePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<string[]>([]);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -37,6 +39,7 @@ export default function NewVehiclePage() {
         monthlyRate: fd.get('monthlyRate') ? Number(fd.get('monthlyRate')) : undefined,
         insuranceExpiry: String(fd.get('insuranceExpiry') || '') || undefined,
         technicalVisitExpiry: String(fd.get('technicalVisitExpiry') || '') || undefined,
+        photos: photos.length > 0 ? photos : undefined,
         notes: String(fd.get('notes') || '') || undefined,
       });
       router.push('/vehicles');
@@ -132,6 +135,15 @@ export default function NewVehiclePage() {
               <Field label="Notes" htmlFor="notes">
                 <Textarea id="notes" name="notes" rows={3} />
               </Field>
+            </div>
+            <div className="md:col-span-2">
+              <ImageUploader
+                value={photos}
+                onChange={setPhotos}
+                kind="vehicle"
+                max={8}
+                label="Photos du véhicule"
+              />
             </div>
           </CardBody>
         </Card>

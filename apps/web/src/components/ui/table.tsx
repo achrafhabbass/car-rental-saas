@@ -3,28 +3,38 @@ import { cn } from '@/lib/utils';
 export function Table({ className, ...props }: React.HTMLAttributes<HTMLTableElement>) {
   return (
     <div className="overflow-x-auto">
-      <table className={cn('min-w-full divide-y divide-slate-200 text-sm', className)} {...props} />
+      <table
+        className={cn('min-w-full divide-y divide-line-soft text-sm', className)}
+        {...props}
+      />
     </div>
   );
 }
 
 export function Thead(props: React.HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className="bg-slate-50" {...props} />;
+  // Warm cream-deep band — the editorial alternative to a hard grey row.
+  return <thead className="bg-cream-deep/50" {...props} />;
 }
 
 export function Tbody(props: React.HTMLAttributes<HTMLTableSectionElement>) {
-  return <tbody className="divide-y divide-slate-100 bg-white" {...props} />;
+  return <tbody className="divide-y divide-line-soft" {...props} />;
 }
 
 export function Tr({ className, ...props }: React.HTMLAttributes<HTMLTableRowElement>) {
-  return <tr className={cn('hover:bg-slate-50 transition', className)} {...props} />;
+  // Hover tints with a faint ember wash.
+  return (
+    <tr
+      className={cn('hover:bg-ember-50/50 transition-colors', className)}
+      {...props}
+    />
+  );
 }
 
 export function Th({ className, ...props }: React.ThHTMLAttributes<HTMLTableCellElement>) {
   return (
     <th
       className={cn(
-        'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500',
+        'px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-mute',
         className,
       )}
       {...props}
@@ -35,30 +45,48 @@ export function Th({ className, ...props }: React.ThHTMLAttributes<HTMLTableCell
 export function Td({ className, ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) {
   return (
     <td
-      className={cn('px-4 py-3 text-sm text-slate-700 whitespace-nowrap', className)}
+      className={cn('px-5 py-4 text-sm text-ink whitespace-nowrap', className)}
       {...props}
     />
   );
 }
+
+type BadgeTone =
+  | 'slate'
+  | 'green'
+  | 'amber'
+  | 'red'
+  | 'blue'
+  | 'indigo'
+  | 'cyan'
+  | 'violet'
+  | 'ember';
 
 export function Badge({
   children,
   tone = 'slate',
 }: {
   children: React.ReactNode;
-  tone?: 'slate' | 'green' | 'amber' | 'red' | 'blue';
+  tone?: BadgeTone;
 }) {
-  const tones: Record<string, string> = {
-    slate: 'bg-slate-100 text-slate-700',
-    green: 'bg-emerald-100 text-emerald-700',
-    amber: 'bg-amber-100 text-amber-700',
-    red: 'bg-red-100 text-red-700',
-    blue: 'bg-blue-100 text-blue-700',
+  // Pill with tone-paired bg and text — warm by default. The legacy
+  // tone names (slate/blue/indigo/cyan/violet) are kept so existing
+  // call-sites stay valid; they get sensible warm equivalents.
+  const tones: Record<BadgeTone, string> = {
+    slate: 'bg-cream-deep text-ink-soft',
+    green: 'bg-emerald-soft text-emerald',
+    amber: 'bg-amber-soft text-amber',
+    red: 'bg-rose-soft text-rose',
+    blue: 'bg-sky-soft text-sky',
+    indigo: 'bg-sky-soft text-sky',
+    cyan: 'bg-sky-soft text-sky',
+    violet: 'bg-rose-soft text-rose',
+    ember: 'bg-ember-100 text-ember-700',
   };
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
+        'inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide',
         tones[tone],
       )}
     >

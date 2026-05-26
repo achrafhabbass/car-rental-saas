@@ -5,6 +5,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card';
+import { ImageUploader } from '@/components/ui/image-uploader';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 import { ApiError } from '@/lib/api';
@@ -27,6 +28,7 @@ export default function NewInspectionPage() {
   const [contracts, setContracts] = useState<RentalContractDto[]>([]);
   const [contractId, setContractId] = useState(presetContractId ?? '');
   const [type, setType] = useState<InspectionTypeName>(presetType);
+  const [photos, setPhotos] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,6 +56,7 @@ export default function NewInspectionPage() {
         fuelLevel: (String(fd.get('fuelLevel')) as FuelLevelName) || undefined,
         condition: (String(fd.get('condition')) as VehicleConditionRatingName) || undefined,
         damages: String(fd.get('damages') || '') || undefined,
+        photos: photos.length > 0 ? photos : undefined,
         agentName: String(fd.get('agentName') || '') || undefined,
         signatureUrl: String(fd.get('signatureUrl') || '') || undefined,
         notes: String(fd.get('notes') || '') || undefined,
@@ -145,6 +148,15 @@ export default function NewInspectionPage() {
                   placeholder="Rayures, bosses, accessoires manquants…"
                 />
               </Field>
+            </div>
+            <div className="md:col-span-2">
+              <ImageUploader
+                value={photos}
+                onChange={setPhotos}
+                kind="inspection"
+                max={12}
+                label="Photos (dommages, dégâts)"
+              />
             </div>
           </CardBody>
         </Card>

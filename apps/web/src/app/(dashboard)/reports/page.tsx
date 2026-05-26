@@ -192,19 +192,20 @@ export default function ReportsPage() {
                 <Th>Contrats</Th>
                 <Th>CA</Th>
                 <Th>Maintenance</Th>
+                <Th>Crédit</Th>
                 <Th>Net</Th>
               </Tr>
             </Thead>
             <Tbody>
               {fleet === null ? (
                 <Tr>
-                  <Td colSpan={5} className="text-center text-slate-400 py-8">
+                  <Td colSpan={6} className="text-center text-slate-400 py-8">
                     Chargement…
                   </Td>
                 </Tr>
               ) : fleet.length === 0 ? (
                 <Tr>
-                  <Td colSpan={5} className="text-center text-slate-400 py-8">
+                  <Td colSpan={6} className="text-center text-slate-400 py-8">
                     Aucun véhicule.
                   </Td>
                 </Tr>
@@ -222,6 +223,7 @@ export default function ReportsPage() {
                     <Td>{v.contractCount}</Td>
                     <Td className="font-semibold">{fmtMoney(v.totalRevenue)}</Td>
                     <Td className="text-slate-500">{fmtMoney(v.maintenanceCost)}</Td>
+                    <Td className="text-slate-500">{fmtMoney(v.creditCost)}</Td>
                     <Td className={v.net >= 0 ? 'text-emerald-600' : 'text-red-600'}>
                       {fmtMoney(v.net)}
                     </Td>

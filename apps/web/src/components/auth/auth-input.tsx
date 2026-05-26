@@ -39,7 +39,7 @@ export const AuthInput = forwardRef<HTMLInputElement, AuthInputProps>(function A
           'group relative flex items-center rounded-xl bg-white ring-1 transition-all duration-200',
           error
             ? 'ring-red-300 focus-within:ring-2 focus-within:ring-red-400'
-            : 'ring-slate-200 hover:ring-slate-300 focus-within:ring-2 focus-within:ring-primary-500/60 focus-within:shadow-[0_0_0_4px_rgba(27,58,107,0.08)]',
+            : 'ring-slate-200 hover:ring-slate-300 focus-within:ring-2 focus-within:ring-primary-500 focus-within:shadow-[0_0_0_4px_rgba(99,102,241,0.12)]',
         )}
       >
         {Icon && (
